@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\DB;
 
         Route::post('/procesar-citas-expiradas', [TaskController::class, 'procesarCitasExpiradas']);
 
+
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
 
@@ -76,6 +77,9 @@ use Illuminate\Support\Facades\DB;
         Route::get('/citas/{userId}', [ClienteController::class, 'obtenerCitas']);
         Route::put('/cancelar-cita/{idCita}', [ClienteController::class, 'cancelarCitaCliente']);
 
+        Route::get('/cliente/historialcitas/{userId}', [ClienteController::class, 'obtenerHistorialCitasCliente']);
+        Route::get('/cliente/historialpagos/{userId}', [ClienteController::class, 'obtenerHistorialPagosCliente']);
+
         //Rutas para mercado pago
         Route::post('/payment/preference', [PaymentController::class, 'createPreference']);
         Route::post('/actualizar-comprobante', [ClienteController::class, 'actualizarComprobante']);
@@ -110,12 +114,13 @@ use Illuminate\Support\Facades\DB;
         Route::get('/doctor/historialcitas/{userId}', [DoctorController::class, 'obtenerHistorialCitasDoctor']);
 
         //Horarios Rutas
-        Route::get('horarios-doctores/listar/{idDoctor}', [DoctorController::class, 'listarHorarios']);
+
         Route::post('horarios-doctores/crear', [DoctorController::class, 'crearHorario']);
         Route::put('horarios-doctores/actualizar/{idHorario}', [DoctorController::class, 'actualizarHorario']);
         Route::delete('horarios-doctores/eliminar/{idHorario}', [DoctorController::class, 'eliminarHorario']);
+        Route::get('horarios-doctores/listar/{idDoctor}', [DoctorController::class, 'listarHorarios']);
 
-        
+
     });
 
 
