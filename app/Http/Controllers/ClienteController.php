@@ -678,36 +678,86 @@ class ClienteController extends Controller
     
     public function cancelarCitaCliente(Request $request, $idCita)
     {
-        // Validar los datos de entrada
-        $request->validate([
-            'motivo' => 'required|string',
-            'idCliente' => 'required|integer',
-        ]);
-
-        // Verificar que la cita exista y pertenezca al cliente
-        $cita = DB::table('citas')
-            ->where('idCita', $idCita)
-            ->where('idCliente', $request->input('idCliente'))
-            ->first();
-
-        if (!$cita) {
-            return response()->json(['error' => 'Cita no encontrada o no tienes permisos'], 404);
-        }
-
-        // Actualizar el estado de la cita y agregar el motivo
-        DB::table('citas')
-            ->where('idCita', $idCita)
-            ->update([
-                'estado' => 'cancelada',
-                'motivo' => $request->input('motivo'),
+        try {
+            // Validar los datos de entrada
+            $request->validate([
+                'motivo' => 'required|string',
+                'idCliente' => 'required|integer',
             ]);
-
-        // Eliminar el pago asociado a la cita
-        DB::table('pagos')
-            ->where('idCita', $idCita)
-            ->delete();
-
-        return response()->json(['message' => 'Cita cancelada correctamente'], 200);
+    
+            // Verificar que la cita exista y pertenezca al cliente
+            $cita = DB::table('citas')
+                ->where('idCita', $idCita)
+                ->where('idCliente', $request->input('idCliente'))
+                ->first();
+    
+            if (!$cita) {
+                return response()->json(['error' => 'Cita no encontrada o no tienes permisos'], 404);
+            }
+    
+            // Obtener los pagos asociados a la cita
+            $pagos = DB::table('pagos')
+                ->where('idCita', $idCita)
+                ->get();
+    
+            // Iniciar transacción
+            DB::beginTransaction();
+            try {
+                // 1. Mover la cita a la tabla historial_citas
+                DB::table('historial_citas')->insert([
+                    'idCita' => $cita->idCita,
+                    'idCliente' => $cita->idCliente,
+                    'idFamiliarUsuario' => $cita->idFamiliarUsuario,
+                    'idDoctor' => $cita->idDoctor,
+                    'idHorario' => $cita->idHorario,
+                    'especialidad' => $cita->especialidad,
+                    'estado' => 'cancelada',
+                    'motivo' => $request->input('motivo'),
+                ]);
+    
+                // 2. Eliminar los pagos asociados (si existen)
+                if ($pagos->isNotEmpty()) {
+                    DB::table('pagos')
+                        ->where('idCita', $idCita)
+                        ->delete();
+                }
+    
+                // 3. Eliminar la cita original de la tabla citas
+                DB::table('citas')
+                    ->where('idCita', $idCita)
+                    ->delete();
+    
+                // Confirmar la transacción
+                DB::commit();
+    
+                return response()->json([
+                    'message' => 'Cita cancelada y movida al historial correctamente',
+                    'idCita' => $idCita,
+                    'pagos_eliminados' => $pagos->count()
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollback();
+    
+                Log::error('Error en la transacción:', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'idCita' => $idCita
+                ]);
+                return response()->json([
+                    'error' => 'Error al procesar la cancelación de la cita',
+                    'details' => $e->getMessage()
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en validación:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Error en la validación de datos',
+                'details' => $e->getMessage()
+            ], 400);
+        }
     }
 
 

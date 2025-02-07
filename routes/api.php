@@ -118,6 +118,7 @@ use Illuminate\Support\Facades\DB;
         Route::post('horarios-doctores/crear', [DoctorController::class, 'crearHorario']);
         Route::put('horarios-doctores/actualizar/{idHorario}', [DoctorController::class, 'actualizarHorario']);
         Route::delete('horarios-doctores/eliminar/{idHorario}', [DoctorController::class, 'eliminarHorario']);
+        //LISTAR HORARIOS EN MIS HORARIOS CALENMDARIO y EN INICIO CALENDARIO
         Route::get('horarios-doctores/listar/{idDoctor}', [DoctorController::class, 'listarHorarios']);
 
 
