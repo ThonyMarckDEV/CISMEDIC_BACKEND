@@ -600,6 +600,7 @@ class ClienteController extends Controller
             ], 500);
         }
     }
+
     public function obtenerHistorialPagosCliente($idCliente, Request $request)
     {
         try {
@@ -609,12 +610,14 @@ class ClienteController extends Controller
                     'error' => 'ID del cliente no proporcionado'
                 ], 400);
             }
-    
+
             // Obtener los filtros de la solicitud
             $estadoFiltro = $request->query('estado');
             $idPagoFiltro = $request->query('idPago');
             $fechaFiltro = $request->query('fecha');
-    
+            $nombreFiltro = $request->query('nombre'); // Nuevo filtro: nombre del cliente
+            $dniFiltro = $request->query('dni'); // Nuevo filtro: DNI del cliente
+
             // Consulta base para obtener los pagos del cliente
             $query = DB::table('historial_pagos as p')
                 ->join('historial_citas as c', 'p.idCita', '=', 'c.idCita')
@@ -642,27 +645,40 @@ class ClienteController extends Controller
                     'e.nombre as especialidad'
                 )
                 ->where('c.idCliente', $idCliente);
-    
+
             // Aplicar filtro por estado si se proporciona
             if ($estadoFiltro && in_array($estadoFiltro, ['pagado', 'pendiente'])) {
                 $query->where('p.estado', $estadoFiltro);
             }
-    
+
             // Aplicar filtro por ID de pago si se proporciona
             if ($idPagoFiltro) {
                 $query->where('p.idPago', $idPagoFiltro);
             }
-    
+
             // Aplicar filtro por fecha si se proporciona
             if ($fechaFiltro) {
                 $query->where('p.fecha_pago', $fechaFiltro);
             }
-    
+
+            // Aplicar filtro por nombre del cliente (parcial o completo)
+            if ($nombreFiltro) {
+                $query->where(function ($q) use ($nombreFiltro) {
+                    $q->where('u.nombres', 'like', "%{$nombreFiltro}%")
+                    ->orWhere('u.apellidos', 'like', "%{$nombreFiltro}%");
+                });
+            }
+
+            // Aplicar filtro por DNI del cliente
+            if ($dniFiltro) {
+                $query->where('u.dni', 'like', "%{$dniFiltro}%");
+            }
+
             // Ordenar por fecha de pago
             $payments = $query
                 ->orderBy('p.fecha_pago', 'desc')
                 ->get();
-    
+
             return response()->json($payments);
         } catch (\Exception $e) {
             Log::error('Error al obtener los pagos del cliente:', [
@@ -675,6 +691,7 @@ class ClienteController extends Controller
             ], 500);
         }
     }
+
     
     public function cancelarCitaCliente(Request $request, $idCita)
     {
