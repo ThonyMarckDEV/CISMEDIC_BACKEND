@@ -1,0 +1,709 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Mail\NotificacionPagoPendiente;
+use App\Models\CaracteristicaProducto;
+use App\Models\ImagenModelo;
+use App\Models\Usuario;
+use App\Models\Categoria;
+use App\Models\Producto;
+use App\Models\Log as LogUser;
+use Illuminate\Http\Request;
+use App\Models\Modelo;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use App\Mail\ConfirmacionCita;
+use App\Mail\ConfirmacionPago;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+
+class ClienteController extends Controller
+{
+     // Obtener todas las especialidades
+
+     public function getEspecialidades()
+     {
+         try {
+             $especialidades = DB::table('especialidades')
+                 ->where('estado', 'activo')
+                 ->get();
+             
+             return response()->json($especialidades);
+         } catch (\Exception $e) {
+             return response()->json([
+                 'error' => 'Error al obtener especialidades',
+                 'details' => $e->getMessage()
+             ], 500);
+         }
+     }
+     
+     public function getDoctoresPorEspecialidad($idEspecialidad)
+     {
+         try {
+             $doctores = DB::table('usuarios')
+                 ->join('especialidades_usuarios', 'usuarios.idUsuario', '=', 'especialidades_usuarios.idUsuario')
+                 ->where('usuarios.rol', 'doctor')
+                 ->where('usuarios.estado', 'activo')
+                 ->where('especialidades_usuarios.idEspecialidad', $idEspecialidad)
+                 ->select('usuarios.idUsuario', 'usuarios.nombres', 'usuarios.apellidos')
+                 ->get();
+     
+             return response()->json($doctores);
+         } catch (\Exception $e) {
+             return response()->json([
+                 'error' => 'Error al obtener doctores',
+                 'details' => $e->getMessage()
+             ], 500);
+         }
+     }
+     
+
+    public function getHorariosDisponibles($idDoctor, $fecha)
+    {
+        try {
+            // Validar que se proporcionen el ID del doctor y la fecha
+            if (!$idDoctor || !$fecha) {
+                return response()->json([
+                    'error' => 'Se requieren el ID del doctor y la fecha'
+                ], 400);
+            }
+    
+            // Obtener la fecha y hora actual
+            $fechaActual = now()->format('Y-m-d');
+            $horaActual = now()->format('H:i:s');
+    
+            // Margen de tiempo en minutos (configurable)
+            $margenTiempo = config('app.horario_margen', 20); // Por defecto: 20 minutos
+    
+            // Determinar si la fecha solicitada es hoy o futura
+            $esFechaFutura = $fecha > $fechaActual;
+    
+            // Calcular la hora mínima permitida (hora actual + margen de tiempo)
+            $horaMinimaPermitida = now()->addMinutes($margenTiempo)->format('H:i:s');
+    
+            // Obtener todos los horarios disponibles para el doctor en la fecha dada
+            $horarios = DB::table('horarios_doctores')
+                ->where('idDoctor', $idDoctor)
+                ->where('fecha', $fecha)
+                ->where('estado', 'activo') // Asegurarse de que el horario esté activo
+                ->when(!$esFechaFutura, function ($query) use ($horaMinimaPermitida) {
+                    // Si la fecha es hoy, excluir horarios que ya pasaron o están dentro del margen de tiempo
+                    return $query->where('hora_inicio', '>', $horaMinimaPermitida);
+                })
+                ->whereNotIn('idHorario', function ($query) use ($idDoctor, $fecha) {
+                    // Subconsulta para excluir los horarios que ya están ocupados por citas con estado "pago pendiente", "completada" o "pagado"
+                    $query->select('idHorario')
+                        ->from('citas')
+                        ->where('idDoctor', $idDoctor)
+                        ->where('fecha', $fecha)
+                        ->whereIn('estado', ['pago pendiente', 'completada', 'pagado']);
+                })
+                ->orWhere(function ($query) use ($idDoctor, $fecha, $esFechaFutura, $horaActual, $margenTiempo) {
+                    // Incluir horarios cancelados si la fecha es futura o si la fecha es hoy pero aún no han pasado más de `$margenTiempo` minutos desde su hora de inicio
+                    $query->where('idDoctor', $idDoctor)
+                        ->where('fecha', $fecha)
+                        ->where('estado', 'activo') // Asegurarse de que el horario esté activo
+                        ->whereIn('idHorario', function ($subQuery) use ($idDoctor, $fecha, $esFechaFutura, $horaActual, $margenTiempo) {
+                            $subQuery->select('idHorario')
+                                ->from('citas')
+                                ->where('idDoctor', $idDoctor)
+                                ->where('fecha', $fecha)
+                                ->where('estado', 'cancelada')
+                                ->when(!$esFechaFutura, function ($subQuery) use ($horaActual, $margenTiempo) {
+                                    // Si la fecha es hoy, calcular la hora límite (hora_inicio - margenTiempo)
+                                    return $subQuery->whereRaw("ADDTIME(hora_inicio, '-{$margenTiempo} MINUTE') <= ?", [$horaActual]);
+                                });
+                        });
+                })
+                ->select(
+                    'idHorario',
+                    'hora_inicio',
+                    'costo'  // Añadimos el campo 'costo'
+                )
+                ->orderBy('hora_inicio', 'asc') // Ordenar los horarios por hora de inicio
+                ->get();
+    
+            // Registrar los horarios encontrados para depuración
+            Log::info('Horarios encontrados:', ['horarios' => $horarios]);
+    
+            // Devolver los horarios disponibles en formato JSON
+            return response()->json([
+                'horarios' => $horarios
+            ]);
+        } catch (\Exception $e) {
+            // Registrar cualquier error que ocurra durante la ejecución
+            Log::error('Error en getHorariosDisponibles:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+    
+            // Devolver un mensaje de error en caso de excepción
+            return response()->json([
+                'error' => 'Error al obtener horarios disponibles',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function getWeekSchedule(Request $request, $doctorId)
+    {
+        try {
+            // Parsear la fecha proporcionada en la solicitud
+            $date = Carbon::parse($request->query('date'));
+            $weekStart = $date->copy()->startOfWeek();
+            $weekEnd = $date->copy()->endOfWeek();
+    
+            // Definir el rango de fechas para incluir siempre fechas futuras
+            $startDate = $weekStart->format('Y-m-d');
+            $endDate = '2100-12-31'; // Fecha muy futura para incluir todos los slots disponibles
+    
+            // Margen de tiempo en minutos (configurable)
+            $margenTiempo = config('app.horario_margen', 20); // Por defecto: 20 minutos
+    
+            // Obtener todas las citas pagadas, pendientes o completadas para el doctor en el rango de fechas
+            $bookedSlots = DB::table('citas')
+                ->join('horarios_doctores', 'citas.idHorario', '=', 'horarios_doctores.idHorario')
+                ->leftJoin('pagos', 'citas.idCita', '=', 'pagos.idCita') // Left join para incluir citas sin pago
+                ->where('citas.idDoctor', $doctorId)
+                ->whereBetween('horarios_doctores.fecha', [$startDate, $endDate])
+                ->whereIn('citas.estado', ['pagado', 'pago pendiente', 'completada']) // Incluir citas pagadas, pendientes o completadas
+                ->select(
+                    'horarios_doctores.fecha',
+                    'horarios_doctores.hora_inicio',
+                    'citas.estado' // Añadimos el estado de la cita
+                )
+                ->get();
+    
+            // Obtener todos los slots disponibles para el doctor en el rango de fechas
+            $availableSlots = DB::table('horarios_doctores')
+                ->where('idDoctor', $doctorId)
+                ->where('estado', 'activo') // Asegurarse de que el horario esté activo
+                ->whereBetween('fecha', [$startDate, $endDate])
+                ->select(
+                    'fecha',
+                    'hora_inicio'
+                )
+                ->get();
+    
+            // Filtrar los slots disponibles eliminando los que están reservados y excluyendo fechas pasadas
+            $currentTime = Carbon::now(); // Obtener la hora actual
+            $today = Carbon::today()->format('Y-m-d'); // Obtener la fecha de hoy
+    
+            $availableSlots = $availableSlots->reject(function ($slot) use ($bookedSlots, $margenTiempo, $currentTime, $today) {
+                // Excluir slots cuya fecha ya pasó
+                if ($slot->fecha < $today) {
+                    return true;
+                }
+    
+                // Verificar si el slot está ocupado por una cita pagada, pendiente o completada
+                if ($bookedSlots->contains(function ($bookedSlot) use ($slot) {
+                    return $bookedSlot->fecha === $slot->fecha && $bookedSlot->hora_inicio === $slot->hora_inicio;
+                })) {
+                    return true;
+                }
+    
+                // Para slots del día actual, aplicar el margen de tiempo si la cita está cancelada
+                if ($slot->fecha === $today) {
+                    $slotDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $slot->fecha . ' ' . $slot->hora_inicio);
+                    $margenDateTime = $slotDateTime->copy()->subMinutes($margenTiempo);
+    
+                    if ($currentTime->greaterThanOrEqualTo($margenDateTime)) {
+                        return true;
+                    }
+                }
+    
+                return false;
+            });
+    
+            // Devolver la respuesta con los slots disponibles y el rango de la semana
+            return response()->json([
+                'availableSlots' => $availableSlots,
+                'weekStart' => $weekStart->format('Y-m-d'),
+                'weekEnd' => $weekEnd->format('Y-m-d')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al obtener el horario del doctor',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function agendarCita(Request $request)
+    {
+        // Validar los datos de entrada
+        $validator = Validator::make($request->all(), [
+            'idCliente' => 'required|integer|exists:usuarios,idUsuario',
+            'idFamiliarUsuario' => 'nullable|integer|exists:familiares_usuarios,idFamiliarUsuario', // Nuevo campo
+            'idDoctor' => 'required|integer|exists:usuarios,idUsuario',
+            'idHorario' => 'required|integer|exists:horarios_doctores,idHorario',
+            'especialidad' => 'required|integer|exists:especialidades,idEspecialidad',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        try {
+            // Verificar si el horario está activo
+            $horario = DB::table('horarios_doctores')
+                ->where('idHorario', $request->idHorario)
+                ->first();
+
+            if (!$horario || $horario->estado !== 'activo') {
+                return response()->json([
+                    'error' => 'El horario seleccionado ya no está disponible.'
+                ], 409); // Código HTTP 409: Conflict
+            }
+
+            // Obtener el nombre de la especialidad
+            $especialidadnombre = DB::table('especialidades')
+                ->where('idEspecialidad', $request->especialidad)
+                ->value('nombre');
+
+            // Insertar la cita en la tabla `citas`
+            DB::table('citas')->insert([
+                'idCliente' => $request->idCliente,
+                'idFamiliarUsuario' => $request->idFamiliarUsuario, // Insertar el ID del familiar
+                'idDoctor' => $request->idDoctor,
+                'idHorario' => $request->idHorario,
+                'especialidad' => $especialidadnombre,
+                'estado' => 'pago pendiente',
+                'motivo' => null
+            ]);
+
+            // Obtener el ID de la cita recién creada
+            $idCita = DB::getPdo()->lastInsertId();
+
+            // Obtener los datos del cliente, doctor y horario
+            $cliente = DB::table('usuarios')->where('idUsuario', $request->idCliente)->first();
+            $doctor = DB::table('usuarios')->where('idUsuario', $request->idDoctor)->first();
+
+            // Crear un objeto con los datos de la cita para el correo
+            $citaData = [
+                'doctor_nombre' => $doctor->nombres . ' ' . $doctor->apellidos,
+                'fecha' => $horario->fecha,
+                'hora' => $horario->hora_inicio,
+                'especialidad' => $especialidadnombre,
+                'estado' => 'pago pendiente',
+            ];
+
+            // Obtener el costo desde la tabla `horarios_doctores`
+            $costo = $horario->costo;
+
+            // Crear un objeto con los datos del pago
+            $pagoData = [
+                'idCita' => $idCita,
+                'costo' => $costo,
+            ];
+
+            // Enviar el correo de confirmación de la cita
+            Mail::to($cliente->correo)->send(new ConfirmacionCita($cliente, $citaData));
+
+            // Enviar el correo de notificación de pago pendiente
+            Mail::to($cliente->correo)->send(new NotificacionPagoPendiente($cliente, $citaData, (object)$pagoData));
+
+            return response()->json([
+                'message' => 'Cita agendada exitosamente',
+                'idCita' => $idCita,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Error al agendar la cita: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al agendar la cita: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // Función para registrar el pago de una cita
+    public function registrarPago(Request $request)
+    {
+        // Validar los datos de entrada
+        $validator = Validator::make($request->all(), [
+            'idCita' => 'required|integer|exists:citas,idCita',
+            'monto' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        // Insertar el pago en la tabla `pagos`
+        try {
+            DB::table('pagos')->insert([
+                'idCita' => $request->idCita,
+                'monto' => $request->monto,
+                'estado' => 'pendiente', // Estado inicial
+                'fecha_pago' => null, // Fecha de pago inicialmente nula
+                'tipo_pago' => null, // Tipo de pago inicialmente nulo
+                'hora_generacion' => now()->format('H:i:s'), // Registrar la hora de generación del pago
+                'tipo_comprobante' => null,
+                'ruc'=>null
+            ]);
+
+            return response()->json([
+                'message' => 'Pago registrado exitosamente',
+                'nota' => 'OJO: Si no realizas el pago en los 10 minutos posteriores, tu cita se cancelará automáticamente.'
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al registrar el pago: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizarComprobante(Request $request)
+    {
+        try {
+            // Validación de los datos de entrada
+            $validator = Validator::make($request->all(), [
+                'idPago' => 'required|integer|exists:pagos,idPago',
+                'tipo_comprobante' => 'required|in:boleta,factura',
+                'ruc' => 'nullable|required_if:tipo_comprobante,factura|string|size:11',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Obtener el pago desde la base de datos
+            $pago = DB::table('pagos')->where('idPago', $request->idPago)->first();
+
+            if (!$pago) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El pago no existe'
+                ], 404);
+            }
+
+            // Verificar que el pago está en estado pendiente
+            if ($pago->estado !== 'pendiente') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden modificar pagos pendientes'
+                ], 400);
+            }
+
+            // Actualizar el tipo de comprobante y el RUC en la base de datos
+            $rucValue = ($request->tipo_comprobante === 'factura') ? $request->ruc : null;
+
+            DB::table('pagos')
+                ->where('idPago', $request->idPago)
+                ->update([
+                    'tipo_comprobante' => $request->tipo_comprobante,
+                    'ruc' => $rucValue
+                ]);
+
+            // Retornar respuesta exitosa
+            $pagoActualizado = DB::table('pagos')->where('idPago', $request->idPago)->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Comprobante actualizado correctamente',
+                'data' => $pagoActualizado
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el comprobante: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    // public function obtenerCitas($userId)
+    // {
+    //     $appointments = DB::table('citas as c')
+    //         ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
+    //         ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
+    //         ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
+    //         ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
+    //         ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
+    //         ->leftJoin('pagos as p', 'c.idCita', '=', 'p.idCita')
+    //         ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario') // Unión con familiares_usuarios
+    //         ->select(
+    //             'c.idCita',
+    //             'u_cliente.nombres as clienteNombre',
+    //             'u_cliente.apellidos as clienteApellidos',
+    //             'u_doctor.nombres as doctorNombre',
+    //             'u_doctor.apellidos as doctorApellidos',
+    //             'e.nombre as especialidad',
+    //             'hd.fecha',
+    //             'hd.hora_inicio as horaInicio',
+    //             'hd.costo',
+    //             'c.estado',
+    //             'c.motivo', // Agregar el campo motivoCancelacion
+    //             'p.idPago',
+    //             DB::raw('IFNULL(fu.dni, u_cliente.dni) as dni'), // Obtener el DNI del familiar o del cliente
+    //             DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'), // Nombre del paciente (familiar o cliente)
+    //             DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos') // Apellidos del paciente (familiar o cliente)
+    //         )
+    //         ->where('c.idCliente', $userId)
+    //         ->orderBy('hd.fecha', 'asc')
+    //         ->orderBy('hd.hora_inicio', 'asc')
+    //         ->get();
+
+    //     return response()->json($appointments);
+    // }
+
+
+    public function obtenerCitas($userId)
+    {
+        $appointments = DB::table('citas as c')
+            ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
+            ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
+            ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
+            ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
+            ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
+            ->leftJoin('pagos as p', 'c.idCita', '=', 'p.idCita')
+            ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario') // Unión con familiares_usuarios
+            ->select(
+                'c.idCita',
+                'u_cliente.nombres as clienteNombre',
+                'u_cliente.apellidos as clienteApellidos',
+                'u_doctor.nombres as doctorNombre',
+                'u_doctor.apellidos as doctorApellidos',
+                'e.nombre as especialidad',
+                'hd.fecha',
+                'hd.hora_inicio as horaInicio',
+                'hd.costo',
+                'c.estado',
+                'c.motivo', // Agregar el campo motivoCancelacion
+                'p.idPago',
+                DB::raw('IFNULL(fu.dni, u_cliente.dni) as dni'), // Obtener el DNI del familiar o del cliente
+                DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'), // Nombre del paciente (familiar o cliente)
+                DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos') // Apellidos del paciente (familiar o cliente)
+            )
+            ->where('c.idCliente', $userId)
+            ->orderByRaw("
+                CASE 
+                    WHEN c.estado = 'pago pendiente' THEN 1
+                    WHEN c.estado = 'pagado' THEN 2
+                    WHEN c.estado = 'completada' THEN 3
+                    WHEN c.estado = 'cancelada' THEN 4
+                    ELSE 5
+                END
+            ")
+            ->orderBy('hd.fecha', 'asc')
+            ->orderBy('hd.hora_inicio', 'asc')
+            ->get();
+
+        return response()->json($appointments);
+    }
+
+    public function cancelarCitaCliente(Request $request, $idCita)
+    {
+        // Validar los datos de entrada
+        $request->validate([
+            'motivo' => 'required|string',
+            'idCliente' => 'required|integer',
+        ]);
+
+        // Verificar que la cita exista y pertenezca al cliente
+        $cita = DB::table('citas')
+            ->where('idCita', $idCita)
+            ->where('idCliente', $request->input('idCliente'))
+            ->first();
+
+        if (!$cita) {
+            return response()->json(['error' => 'Cita no encontrada o no tienes permisos'], 404);
+        }
+
+        // Actualizar el estado de la cita y agregar el motivo
+        DB::table('citas')
+            ->where('idCita', $idCita)
+            ->update([
+                'estado' => 'cancelada',
+                'motivo' => $request->input('motivo'),
+            ]);
+
+        // Eliminar el pago asociado a la cita
+        DB::table('pagos')
+            ->where('idCita', $idCita)
+            ->delete();
+
+        return response()->json(['message' => 'Cita cancelada correctamente'], 200);
+    }
+
+
+  // Listar familiares de un usuario
+  public function listarFamiliares($idUsuario)
+  {
+      $familiares = DB::table('familiares_usuarios')
+          ->where('idUsuario', $idUsuario)
+          ->where('estado', 'Activo')
+          ->get();
+      return response()->json($familiares);
+  }
+
+    // Crear un nuevo familiar
+    public function crearFamiliar(Request $request)
+    {
+        // Validación inicial de los datos
+        $validator = Validator::make($request->all(), [
+            'idUsuario' => 'required|integer',
+            'nombre' => 'required|string|max:255',
+            'apellidos' => 'required|string|max:255',
+            'dni' => 'required|string|max:20',
+            'edad' => 'required|integer',
+            'sexo' => 'required|in:Masculino,Femenino,Otro',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        // Verificar si el usuario ya tiene 4 familiares
+        $countFamiliares = DB::table('familiares_usuarios')
+            ->where('idUsuario', $request->idUsuario)
+            ->where('estado', 'Activo') // Solo contar familiares activos
+            ->count();
+
+        if ($countFamiliares >= 4) {
+            return response()->json([
+                'message' => 'No se pueden agregar más familiares. Límite máximo alcanzado.'
+            ], 400);
+        }
+
+        // Insertar el nuevo familiar si pasa la validación
+        $idFamiliarUsuario = DB::table('familiares_usuarios')->insertGetId([
+            'idUsuario' => $request->idUsuario,
+            'nombre' => $request->nombre,
+            'apellidos' => $request->apellidos,
+            'dni' => $request->dni,
+            'edad' => $request->edad,
+            'sexo' => $request->sexo,
+            'estado' => 'Activo'
+        ]);
+
+        // Obtener el familiar recién creado
+        $familiar = DB::table('familiares_usuarios')
+            ->where('idFamiliarUsuario', $idFamiliarUsuario)
+            ->first();
+
+        return response()->json($familiar, 201);
+    }
+
+  // Actualizar un familiar
+  public function actualizarFamiliar(Request $request, $idFamiliarUsuario)
+  {
+      $familiar = DB::table('familiares_usuarios')
+          ->where('idFamiliarUsuario', $idFamiliarUsuario)
+          ->first();
+
+      if (!$familiar) {
+          return response()->json(['message' => 'Familiar no encontrado'], 404);
+      }
+
+      $validator = Validator::make($request->all(), [
+          'nombre' => 'sometimes|string|max:255',
+          'apellidos' => 'sometimes|string|max:255',
+          'dni' => 'sometimes|string|max:20',
+          'edad' => 'sometimes|integer',
+          'sexo' => 'sometimes|in:Masculino,Femenino,Otro',
+      ]);
+
+      if ($validator->fails()) {
+          return response()->json($validator->errors(), 400);
+      }
+
+      DB::table('familiares_usuarios')
+          ->where('idFamiliarUsuario', $idFamiliarUsuario)
+          ->update([
+              'nombre' => $request->nombre ?? $familiar->nombre,
+              'apellidos' => $request->apellidos ?? $familiar->apellidos,
+              'dni' => $request->dni ?? $familiar->dni,
+              'edad' => $request->edad ?? $familiar->edad,
+              'sexo' => $request->sexo ?? $familiar->sexo
+          ]);
+
+      $familiarActualizado = DB::table('familiares_usuarios')
+          ->where('idFamiliarUsuario', $idFamiliarUsuario)
+          ->first();
+      return response()->json($familiarActualizado);
+  }
+
+  // Borrado lógico de un familiar
+  public function eliminarFamiliar($idFamiliarUsuario)
+  {
+      $familiar = DB::table('familiares_usuarios')
+          ->where('idFamiliarUsuario', $idFamiliarUsuario)
+          ->first();
+
+      if (!$familiar) {
+          return response()->json(['message' => 'Familiar no encontrado'], 404);
+      }
+
+      DB::table('familiares_usuarios')
+          ->where('idFamiliarUsuario', $idFamiliarUsuario)
+          ->update(['estado' => 'Eliminado']);
+
+      return response()->json(['message' => 'Familiar eliminado']);
+  }
+
+    //Funciones para el context
+    public function cantidadCitas($idCliente) {
+        try {
+            // Validar que el ID del doctor esté presente
+            if (!$idCliente) {
+                return response()->json([
+                    'error' => 'ID del doctor no encontrado en el token'
+                ], 400);
+            }
+    
+            $cantidad = DB::table('citas')
+            ->where('idCliente', $idCliente)
+            ->whereIn('estado', ['pago pendiente', 'pagado'])
+            ->count();
+
+            return response()->json(['cantidad' => $cantidad]);
+        } catch (\Exception $e) {
+            Log::error('Error al obtener la cantidad de citas del doctor:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Error al obtener la cantidad de citas del doctor',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function cantidadPagos($idCliente) {
+        try {
+
+            // Validar que el ID del doctor esté presente
+            if (!$idCliente) {
+                return response()->json([
+                    'error' => 'ID del doctor no encontrado en el token'
+                ], 400);
+            }
+    
+            // Consulta para contar los pagos pendientes relacionados con el idCliente
+            $cantidad = DB::table('pagos')
+                ->join('citas', 'pagos.idCita', '=', 'citas.idCita') // Unir pagos con citas
+                ->where('citas.idCliente', $idCliente) // Filtrar por el idCliente del usuario autenticado
+                ->where('pagos.estado', 'pendiente') // Filtrar pagos pendientes
+                ->count();
+    
+            // Retornar la cantidad de pagos pendientes
+            return response()->json(['cantidad' => $cantidad]);
+        } catch (\Exception $e) {
+            // Manejar errores
+            Log::error('Error al obtener la cantidad de pagos:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Error al obtener la cantidad de pagos',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+}
