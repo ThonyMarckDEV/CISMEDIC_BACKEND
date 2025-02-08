@@ -77,209 +77,109 @@ class DoctorController extends Controller
         }
     }
 
-    // public function obtenerHistorialCitasDoctor($idDoctor, Request $request)
-    // {
-    //     try {
-    //         // Validar que se proporcione un ID de doctor
-    //         if (!$idDoctor) {
-    //             return response()->json([
-    //                 'error' => 'ID del doctor no proporcionado'
-    //             ], 400);
-    //         }
-    
-    //         // Obtener los filtros de la solicitud
-    //         $estadoFiltro = $request->query('estado');
-    //         $nombreFiltro = $request->query('nombre');
-    //         $dniFiltro = $request->query('dni');
-    //         $idCitaFiltro = $request->query('idCita');
-    //         $fechaFiltro = $request->query('fecha');
-    //         $horaFiltro = $request->query('hora');
-    
-    //         // Consulta base para obtener las citas del doctor
-    //         $query = DB::table('historial_citas as c')
-    //             ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
-    //             ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
-    //             ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
-    //             ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
-    //             ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
-    //             ->leftJoin('historial_pagos as p', 'c.idCita', '=', 'p.idCita')
-    //             ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario')
-    //             ->select(
-    //                 'c.idCita',
-    //                 'u_cliente.nombres as clienteNombre',
-    //                 'u_cliente.apellidos as clienteApellidos',
-    //                 'u_doctor.nombres as doctorNombre',
-    //                 'u_doctor.apellidos as doctorApellidos',
-    //                 'e.nombre as especialidad',
-    //                 'hd.fecha',
-    //                 'hd.hora_inicio as horaInicio',
-    //                 'hd.costo',
-    //                 'c.estado',
-    //                 'c.motivo',
-    //                 'p.idPago',
-    //                 DB::raw('IFNULL(fu.dni, u_cliente.dni) as dni'),
-    //                 DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'),
-    //                 DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos')
-    //             )
-    //             ->where('c.idDoctor', $idDoctor);
-    
-    //         // Aplicar filtro por estado si se proporciona
-    //         if ($estadoFiltro && in_array($estadoFiltro, ['completada', 'cancelada'])) {
-    //             $query->where('c.estado', $estadoFiltro);
-    //         } else {
-    //             $query->whereIn('c.estado', ['completada', 'cancelada']);
-    //         }
-    
-    //         // Aplicar filtro por nombre del PACIENTE de manera segura
-    //         if ($nombreFiltro) {
-    //             $nombreSeguro = str_replace(['%', '_'], ['\%', '\_'], $nombreFiltro);
-    //             $query->where(function ($q) use ($nombreSeguro) {
-    //                 $q->whereRaw('LOWER(IFNULL(fu.nombre, u_cliente.nombres)) COLLATE utf8mb4_general_ci LIKE ?', ['%' . strtolower($nombreSeguro) . '%']);
-    //             });
-    //         }
-    
-    //         // Aplicar filtro por DNI (coincidencia exacta)
-    //         if ($dniFiltro) {
-    //             $query->where(function ($q) use ($dniFiltro) {
-    //                 $q->whereRaw('IFNULL(fu.dni, u_cliente.dni) COLLATE utf8mb4_general_ci = ?', [$dniFiltro]);
-    //             });
-    //         }
-    
-    //         // Aplicar filtro por ID de cita si se proporciona
-    //         if ($idCitaFiltro) {
-    //             $query->where('c.idCita', $idCitaFiltro);
-    //         }
-    
-    //         // Aplicar filtro por fecha si se proporciona
-    //         if ($fechaFiltro) {
-    //             $query->where('hd.fecha', $fechaFiltro);
-    //         }
-    
-    //         // Aplicar filtro por hora si se proporciona
-    //         if ($horaFiltro) {
-    //             $query->where('hd.hora_inicio', $horaFiltro);
-    //         }
-    
-    //         // Ordenar por fecha y hora
-    //         $appointments = $query
-    //             ->orderBy('hd.fecha', 'asc')
-    //             ->orderBy('hd.hora_inicio', 'asc')
-    //             ->get();
-    
-    //         return response()->json($appointments);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error al obtener las citas del doctor:', [
-    //             'error' => $e->getMessage(),
-    //             'trace' => $e->getTraceAsString()
-    //         ]);
-    //         return response()->json([
-    //             'error' => 'Error al obtener las citas del doctor',
-    //             'details' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
+
 
     public function obtenerHistorialCitasDoctor($idDoctor, Request $request)
-{
-    try {
-        // Validar que se proporcione un ID de doctor
-        if (!$idDoctor) {
+    {
+        try {
+            // Validar que se proporcione un ID de doctor
+            if (!$idDoctor) {
+                return response()->json([
+                    'error' => 'ID del doctor no proporcionado'
+                ], 400);
+            }
+
+            // Obtener los filtros de la solicitud
+            $estadoFiltro = $request->query('estado');
+            $nombreFiltro = $request->query('nombre');
+            $dniFiltro = $request->query('dni');
+            $idCitaFiltro = $request->query('idCita');
+            $fechaFiltro = $request->query('fecha');
+            $horaFiltro = $request->query('hora');
+
+            // Consulta base para obtener las citas del doctor
+            $query = DB::table('historial_citas as c')
+                ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
+                ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
+                ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
+                ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
+                ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
+                ->leftJoin('historial_pagos as p', 'c.idCita', '=', 'p.idCita')
+                ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario')
+                ->select(
+                    'c.idCita',
+                    'u_cliente.nombres as clienteNombre',
+                    'u_cliente.apellidos as clienteApellidos',
+                    'u_doctor.nombres as doctorNombre',
+                    'u_doctor.apellidos as doctorApellidos',
+                    'e.nombre as especialidad',
+                    'hd.fecha',
+                    'hd.hora_inicio as horaInicio',
+                    'hd.costo',
+                    'c.estado',
+                    'c.motivo',
+                    'p.idPago',
+                    DB::raw('IFNULL(fu.dni, u_cliente.dni) as dni'),
+                    DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'),
+                    DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos')
+                )
+                ->where('c.idDoctor', $idDoctor);
+
+            // Aplicar filtro por estado si se proporciona
+            if ($estadoFiltro && in_array($estadoFiltro, ['completada', 'cancelada'])) {
+                $query->where('c.estado', $estadoFiltro);
+            } else {
+                $query->whereIn('c.estado', ['completada', 'cancelada']);
+            }
+
+            // Aplicar filtro por nombre del PACIENTE de manera segura
+            if ($nombreFiltro) {
+                $nombreSeguro = str_replace(['%', '_'], ['\%', '\_'], $nombreFiltro);
+                $query->where(function ($q) use ($nombreSeguro) {
+                    $q->whereRaw('LOWER(CONCAT(IFNULL(fu.nombre, u_cliente.nombres), " ", IFNULL(fu.apellidos, u_cliente.apellidos))) COLLATE utf8mb4_general_ci LIKE ?', ['%' . strtolower($nombreSeguro) . '%']);
+                });
+            }
+
+            // Aplicar filtro por DNI (coincidencia exacta)
+            if ($dniFiltro) {
+                $query->where(function ($q) use ($dniFiltro) {
+                    $q->whereRaw('IFNULL(fu.dni, u_cliente.dni) COLLATE utf8mb4_general_ci = ?', [$dniFiltro]);
+                });
+            }
+
+            // Aplicar filtro por ID de cita si se proporciona
+            if ($idCitaFiltro) {
+                $query->where('c.idCita', $idCitaFiltro);
+            }
+
+            // Aplicar filtro por fecha si se proporciona
+            if ($fechaFiltro) {
+                $query->where('hd.fecha', $fechaFiltro);
+            }
+
+            // Aplicar filtro por hora si se proporciona
+            if ($horaFiltro) {
+                $query->where('hd.hora_inicio', $horaFiltro);
+            }
+
+            // Ordenar por fecha y hora
+            $appointments = $query
+                ->orderBy('hd.fecha', 'asc')
+                ->orderBy('hd.hora_inicio', 'asc')
+                ->get();
+
+            return response()->json($appointments);
+        } catch (\Exception $e) {
+            Log::error('Error al obtener las citas del doctor:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
-                'error' => 'ID del doctor no proporcionado'
-            ], 400);
+                'error' => 'Error al obtener las citas del doctor',
+                'details' => $e->getMessage()
+            ], 500);
         }
-
-        // Obtener los filtros de la solicitud
-        $estadoFiltro = $request->query('estado');
-        $nombreFiltro = $request->query('nombre');
-        $dniFiltro = $request->query('dni');
-        $idCitaFiltro = $request->query('idCita');
-        $fechaFiltro = $request->query('fecha');
-        $horaFiltro = $request->query('hora');
-
-        // Consulta base para obtener las citas del doctor
-        $query = DB::table('historial_citas as c')
-            ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
-            ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
-            ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
-            ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
-            ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
-            ->leftJoin('historial_pagos as p', 'c.idCita', '=', 'p.idCita')
-            ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario')
-            ->select(
-                'c.idCita',
-                'u_cliente.nombres as clienteNombre',
-                'u_cliente.apellidos as clienteApellidos',
-                'u_doctor.nombres as doctorNombre',
-                'u_doctor.apellidos as doctorApellidos',
-                'e.nombre as especialidad',
-                'hd.fecha',
-                'hd.hora_inicio as horaInicio',
-                'hd.costo',
-                'c.estado',
-                'c.motivo',
-                'p.idPago',
-                DB::raw('IFNULL(fu.dni, u_cliente.dni) as dni'),
-                DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'),
-                DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos')
-            )
-            ->where('c.idDoctor', $idDoctor);
-
-        // Aplicar filtro por estado si se proporciona
-        if ($estadoFiltro && in_array($estadoFiltro, ['completada', 'cancelada'])) {
-            $query->where('c.estado', $estadoFiltro);
-        } else {
-            $query->whereIn('c.estado', ['completada', 'cancelada']);
-        }
-
-        // Aplicar filtro por nombre del PACIENTE de manera segura
-        if ($nombreFiltro) {
-            $nombreSeguro = str_replace(['%', '_'], ['\%', '\_'], $nombreFiltro);
-            $query->where(function ($q) use ($nombreSeguro) {
-                $q->whereRaw('LOWER(CONCAT(IFNULL(fu.nombre, u_cliente.nombres), " ", IFNULL(fu.apellidos, u_cliente.apellidos))) COLLATE utf8mb4_general_ci LIKE ?', ['%' . strtolower($nombreSeguro) . '%']);
-            });
-        }
-
-        // Aplicar filtro por DNI (coincidencia exacta)
-        if ($dniFiltro) {
-            $query->where(function ($q) use ($dniFiltro) {
-                $q->whereRaw('IFNULL(fu.dni, u_cliente.dni) COLLATE utf8mb4_general_ci = ?', [$dniFiltro]);
-            });
-        }
-
-        // Aplicar filtro por ID de cita si se proporciona
-        if ($idCitaFiltro) {
-            $query->where('c.idCita', $idCitaFiltro);
-        }
-
-        // Aplicar filtro por fecha si se proporciona
-        if ($fechaFiltro) {
-            $query->where('hd.fecha', $fechaFiltro);
-        }
-
-        // Aplicar filtro por hora si se proporciona
-        if ($horaFiltro) {
-            $query->where('hd.hora_inicio', $horaFiltro);
-        }
-
-        // Ordenar por fecha y hora
-        $appointments = $query
-            ->orderBy('hd.fecha', 'asc')
-            ->orderBy('hd.hora_inicio', 'asc')
-            ->get();
-
-        return response()->json($appointments);
-    } catch (\Exception $e) {
-        Log::error('Error al obtener las citas del doctor:', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return response()->json([
-            'error' => 'Error al obtener las citas del doctor',
-            'details' => $e->getMessage()
-        ], 500);
     }
-}
 
     public function cantidadCitasDoctor($idDoctor)
     {
@@ -662,4 +562,148 @@ class DoctorController extends Controller
               ], 500);
           }
       }
+
+      //PARA EL PERFIL
+      public function actualizarFotoPerfil(Request $request, $idDoctor)
+      {
+          // Validar la solicitud
+          $request->validate([
+              'foto' => 'required|image|max:2048'
+          ]);
+      
+          // Buscar al usuario por su ID
+          $usuario = DB::table('usuarios')->where('idUsuario', $idDoctor)->first();
+          if (!$usuario) {
+              return response()->json(['success' => false, 'message' => 'Usuario no encontrado'], 404);
+          }
+      
+          // Verificar si hay un archivo en la solicitud
+          if ($request->hasFile('foto')) {
+              $path = "profiles/$idDoctor";
+      
+              // Eliminar la imagen anterior si existe
+              if ($usuario->perfil && Storage::disk('public')->exists($usuario->perfil)) {
+                  Storage::disk('public')->delete($usuario->perfil);
+              }
+      
+              // Guardar la nueva imagen en el disco 'public'
+              $filename = $request->file('foto')->store($path, 'public');
+      
+              // Actualizar la ruta en la base de datos
+              DB::table('usuarios')
+                  ->where('idUsuario', $idDoctor)
+                  ->update(['perfil' => $filename]);
+      
+              // Devolver la respuesta JSON
+              return response()->json([
+                  'success' => true,
+                  'message' => 'Foto actualizada correctamente',
+                  'filename' => basename($filename),
+                  'url' => url("storage/$filename") // URL pública del archivo
+              ]);
+          }
+      
+          // Si no se cargó ninguna imagen
+          return response()->json(['success' => false, 'message' => 'No se cargó la imagen'], 400);
+      }
+  
+    public function actualizarIdiomas(Request $request, $idDoctor)
+    {
+        // Validar la solicitud
+        $request->validate([
+            'idiomas' => 'required|array',
+            'idiomas.*' => 'required|string'
+        ]);
+
+        // Eliminar idiomas actuales del doctor
+        DB::table('idiomas_doctor')
+            ->where('idDoctor', $idDoctor)
+            ->delete();
+
+        // Insertar nuevos idiomas
+        foreach ($request->idiomas as $idioma) {
+            DB::table('idiomas_doctor')->insert([
+                'idDoctor' => $idDoctor,
+                'idioma' => $idioma
+            ]);
+        }
+
+        return response()->json([
+            'mensaje' => 'Idiomas actualizados correctamente',
+            'idiomas' => $request->idiomas
+        ]);
+    }
+  
+    public function actualizarEducacion(Request $request, $idDoctor)
+    {
+        // Validar la solicitud
+        $request->validate([
+            'educacion' => 'required|array',
+            'educacion.*.titulo' => 'required|string',
+            'educacion.*.institucion' => 'required|string',
+            'educacion.*.anio' => 'required|string'
+        ]);
+    
+        // Eliminar educación actual del doctor
+        DB::table('educacion_doctor')
+            ->where('idDoctor', $idDoctor)
+            ->delete();
+    
+        // Insertar nueva educación
+        foreach ($request->educacion as $edu) {
+            DB::table('educacion_doctor')->insert([
+                'idDoctor' => $idDoctor,
+                'titulo' => $edu['titulo'],
+                'institucion' => $edu['institucion'],
+                'anio' => $edu['anio']
+            ]);
+        }
+    
+        return response()->json([
+            'mensaje' => 'Educación actualizada correctamente',
+            'educacion' => $request->educacion
+        ]);
+    }
+  
+    public function obtenerPerfil($idDoctor)
+    {
+        // Obtener datos del usuario
+        $usuario = DB::table('usuarios')
+            ->where('idUsuario', $idDoctor)
+            ->first();
+    
+        // Verificar si el usuario existe
+        if (!$usuario) {
+            return response()->json([
+                'error' => 'Usuario no encontrado'
+            ], 404);
+        }
+    
+        // Obtener idiomas del doctor
+        $idiomas = DB::table('idiomas_doctor')
+            ->where('idDoctor', $idDoctor)
+            ->pluck('idioma');
+    
+        // Obtener educación del doctor
+        $educacion = DB::table('educacion_doctor')
+            ->where('idDoctor', $idDoctor)
+            ->get();
+    
+        // Obtener la especialidad del doctor
+        $especialidad = DB::table('especialidades as e')
+            ->join('especialidades_usuarios as eu', 'e.idEspecialidad', '=', 'eu.idEspecialidad')
+            ->where('eu.idUsuario', $idDoctor)
+            ->select('e.nombre as especialidad')
+            ->first();
+    
+        return response()->json([
+            'nombre' => $usuario->nombres . ' ' . $usuario->apellidos,
+            'email' => $usuario->correo,
+            'foto_perfil' => $usuario->perfil,
+            'especialidad' => $especialidad ? $especialidad->especialidad : null,
+            'experiencia' => $usuario->experiencia,
+            'idiomas' => $idiomas,
+            'educacion' => $educacion
+        ]);
+    }
 }

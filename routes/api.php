@@ -119,6 +119,12 @@ use Illuminate\Support\Facades\DB;
         //LISTAR HORARIOS EN MIS HORARIOS CALENMDARIO y EN INICIO CALENDARIO
         Route::get('horarios-doctores/listar/{idDoctor}', [DoctorController::class, 'listarHorarios']);
 
+        //PERFIL
+        Route::post('/doctor/actualizar-foto/{idDoctor}', [DoctorController::class, 'actualizarFotoPerfil']);
+        Route::post('/doctor/actualizar-idiomas/{idDoctor}', [DoctorController::class, 'actualizarIdiomas']);
+        Route::post('/doctor/actualizar-educacion/{idDoctor}', [DoctorController::class, 'actualizarEducacion']);
+        Route::get('/doctor/perfil/{idDoctor}', [DoctorController::class, 'obtenerPerfil']);
+
 
     });
 
