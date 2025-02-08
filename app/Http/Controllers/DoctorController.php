@@ -476,9 +476,9 @@ class DoctorController extends Controller
 
                 // 2. Enviar correo según el estado
                 if ($request->input('estado') === 'completada') {
-                    Mail::to($cliente->email)->send(new NotificacionCitaCompletada($citaData));
+                    Mail::to($cliente->correo)->send(new NotificacionCitaCompletada($citaData));
                 } elseif ($request->input('estado') === 'cancelada') {
-                    Mail::to($cliente->email)->send(new NotificacionCitaCancelada($citaData));
+                    Mail::to($cliente->correo)->send(new NotificacionCitaCancelada($citaData));
                 }
 
                 // 3. Confirmar la transacción
