@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NotificacionCitaEliminadaUsuario;
 use App\Mail\NotificacionPagoPendiente;
 use App\Models\CaracteristicaProducto;
 use App\Models\ImagenModelo;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\ConfirmacionCita;
 use App\Mail\ConfirmacionPago;
+use App\Mail\NotificacionCitaEliminada;
 use DateTime;
 use DateTimeZone;
 use Illuminate\Support\Carbon;
@@ -464,96 +466,55 @@ class ClienteController extends Controller
         return response()->json($appointments);
     }
 
-    // public function obtenerHistorialCitasCliente($idCliente, Request $request)
-    // {
-    //     try {
-    //         if (!$idCliente) {
-    //             return response()->json([
-    //                 'error' => 'ID del cliente no proporcionado'
-    //             ], 400);
-    //         }
-    
-    //         $estadoFiltro = $request->query('estado');
-    //         $nombrePacienteFiltro = $request->query('nombrePaciente');
-    //         $dniFiltro = $request->query('dni');
-    //         $idCitaFiltro = $request->query('idCita');
-    //         $fechaFiltro = $request->query('fecha');
-    //         $horaFiltro = $request->query('hora');
-    
-    //         $query = DB::table('historial_citas as c')
-    //             ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
-    //             ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
-    //             ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
-    //             ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
-    //             ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
-    //             ->leftJoin('historial_pagos as p', 'c.idCita', '=', 'p.idCita')
-    //             ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario')
-    //             ->select(
-    //                 'c.idCita',
-    //                 'u_cliente.nombres as clienteNombre',
-    //                 'u_cliente.apellidos as clienteApellidos',
-    //                 'u_doctor.nombres as doctorNombre',
-    //                 'u_doctor.apellidos as doctorApellidos',
-    //                 'e.nombre as especialidad',
-    //                 'hd.fecha',
-    //                 'hd.hora_inicio as horaInicio',
-    //                 'hd.costo',
-    //                 'c.estado',
-    //                 'c.motivo',
-    //                 'p.idPago',
-    //                 DB::raw('IFNULL(fu.dni, u_cliente.dni) as dni'),
-    //                 DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'),
-    //                 DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos')
-    //             )
-    //             ->where('c.idCliente', $idCliente);
-    
-    //         if ($estadoFiltro && in_array($estadoFiltro, ['completada', 'cancelada'])) {
-    //             $query->where('c.estado', $estadoFiltro);
-    //         } else {
-    //             $query->whereIn('c.estado', ['completada', 'cancelada']);
-    //         }
-    
-    //         // Corrección del filtro por nombre del paciente
-    //         if ($nombrePacienteFiltro) {
-    //             $nombrePacienteFiltro = strtolower($nombrePacienteFiltro);
-    //             $query->whereRaw("LOWER(COALESCE(fu.nombre, u_cliente.nombres)) COLLATE utf8mb4_general_ci LIKE ? OR LOWER(COALESCE(fu.apellidos, u_cliente.apellidos)) COLLATE utf8mb4_general_ci LIKE ?", 
-    //                 ["%{$nombrePacienteFiltro}%", "%{$nombrePacienteFiltro}%"]);
-    //         }
-    
-    //         // Corrección del filtro por DNI
-    //         if ($dniFiltro) {
-    //             $query->whereRaw("COALESCE(fu.dni, u_cliente.dni) COLLATE utf8mb4_general_ci = ?", [$dniFiltro]);
-    //         }
-    
-    //         if ($idCitaFiltro) {
-    //             $query->where('c.idCita', $idCitaFiltro);
-    //         }
-    
-    //         if ($fechaFiltro) {
-    //             $query->where('hd.fecha', $fechaFiltro);
-    //         }
-    
-    //         if ($horaFiltro) {
-    //             $query->where('hd.hora_inicio', 'like', "%$horaFiltro%");
-    //         }
-    
-    //         $appointments = $query
-    //             ->orderBy('hd.fecha', 'asc')
-    //             ->orderBy('hd.hora_inicio', 'asc')
-    //             ->get();
-    
-    //         return response()->json($appointments);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error al obtener las citas del cliente:', [
-    //             'error' => $e->getMessage(),
-    //             'trace' => $e->getTraceAsString()
-    //         ]);
-    //         return response()->json([
-    //             'error' => 'Error al obtener las citas del cliente',
-    //             'details' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
+
+    public function obtenerCitaProxima($userId)
+    {
+        // Obtener la fecha y hora actual
+        $now = now(); // Esto devuelve la fecha y hora actual en formato DateTime
+
+        $appointment = DB::table('citas as c')
+            ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
+            ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
+            ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
+            ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
+            ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
+            ->leftJoin('pagos as p', 'c.idCita', '=', 'p.idCita')
+            ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario')
+            ->select(
+                'c.idCita',
+                'u_doctor.nombres as doctorNombre',
+                'u_doctor.apellidos as doctorApellidos',
+                'e.nombre as especialidad',
+                'hd.fecha',
+                'hd.hora_inicio as horaInicio',
+                'hd.costo',
+                'c.estado',
+                'c.motivo',
+                DB::raw('IFNULL(fu.nombre, u_cliente.nombres) as pacienteNombre'),
+                DB::raw('IFNULL(fu.apellidos, u_cliente.apellidos) as pacienteApellidos')
+            )
+            ->where('c.idCliente', $userId)
+            ->where('c.estado', 'pagado')
+            ->where(function ($query) use ($now) {
+                // Filtrar citas cuya fecha sea mayor o igual a hoy
+                $query->where('hd.fecha', '>', $now->format('Y-m-d'))
+                    ->orWhere(function ($query) use ($now) {
+                        // Si la fecha es hoy, verificar que la hora de inicio sea mayor a la hora actual
+                        $query->where('hd.fecha', '=', $now->format('Y-m-d'))
+                                ->where('hd.hora_inicio', '>', $now->format('H:i:s'));
+                    });
+            })
+            ->orderBy('hd.fecha', 'asc')
+            ->orderBy('hd.hora_inicio', 'asc')
+            ->first();
+
+        // Si no hay cita próxima, devolver un mensaje explícito
+        if (!$appointment) {
+            return response()->json(['message' => 'No hay citas próximas disponibles']);
+        }
+
+        return response()->json($appointment);
+    }
 
     public function obtenerHistorialCitasCliente($idCliente, Request $request)
     {
@@ -749,6 +710,90 @@ class ClienteController extends Controller
     }
 
     
+    // public function cancelarCitaCliente(Request $request, $idCita)
+    // {
+    //     try {
+    //         // Validar los datos de entrada
+    //         $request->validate([
+    //             'motivo' => 'required|string',
+    //             'idCliente' => 'required|integer',
+    //         ]);
+    
+    //         // Verificar que la cita exista y pertenezca al cliente
+    //         $cita = DB::table('citas')
+    //             ->where('idCita', $idCita)
+    //             ->where('idCliente', $request->input('idCliente'))
+    //             ->first();
+    
+    //         if (!$cita) {
+    //             return response()->json(['error' => 'Cita no encontrada o no tienes permisos'], 404);
+    //         }
+    
+    //         // Obtener los pagos asociados a la cita
+    //         $pagos = DB::table('pagos')
+    //             ->where('idCita', $idCita)
+    //             ->get();
+    
+    //         // Iniciar transacción
+    //         DB::beginTransaction();
+    //         try {
+    //             // 1. Mover la cita a la tabla historial_citas
+    //             DB::table('historial_citas')->insert([
+    //                 'idCita' => $cita->idCita,
+    //                 'idCliente' => $cita->idCliente,
+    //                 'idFamiliarUsuario' => $cita->idFamiliarUsuario,
+    //                 'idDoctor' => $cita->idDoctor,
+    //                 'idHorario' => $cita->idHorario,
+    //                 'especialidad' => $cita->especialidad,
+    //                 'estado' => 'cancelada',
+    //                 'motivo' => $request->input('motivo'),
+    //             ]);
+    
+    //             // 2. Eliminar los pagos asociados (si existen)
+    //             if ($pagos->isNotEmpty()) {
+    //                 DB::table('pagos')
+    //                     ->where('idCita', $idCita)
+    //                     ->delete();
+    //             }
+    
+    //             // 3. Eliminar la cita original de la tabla citas
+    //             DB::table('citas')
+    //                 ->where('idCita', $idCita)
+    //                 ->delete();
+    
+    //             // Confirmar la transacción
+    //             DB::commit();
+    
+    //             return response()->json([
+    //                 'message' => 'Cita cancelada y movida al historial correctamente',
+    //                 'idCita' => $idCita,
+    //                 'pagos_eliminados' => $pagos->count()
+    //             ], 200);
+    //         } catch (\Exception $e) {
+    //             DB::rollback();
+    
+    //             Log::error('Error en la transacción:', [
+    //                 'error' => $e->getMessage(),
+    //                 'trace' => $e->getTraceAsString(),
+    //                 'idCita' => $idCita
+    //             ]);
+    //             return response()->json([
+    //                 'error' => 'Error al procesar la cancelación de la cita',
+    //                 'details' => $e->getMessage()
+    //             ], 500);
+    //         }
+    //     } catch (\Exception $e) {
+    //         Log::error('Error en validación:', [
+    //             'error' => $e->getMessage(),
+    //             'trace' => $e->getTraceAsString()
+    //         ]);
+    //         return response()->json([
+    //             'error' => 'Error en la validación de datos',
+    //             'details' => $e->getMessage()
+    //         ], 400);
+    //     }
+    // }
+
     public function cancelarCitaCliente(Request $request, $idCita)
     {
         try {
@@ -800,6 +845,22 @@ class ClienteController extends Controller
                     ->where('idCita', $idCita)
                     ->delete();
     
+                // Obtener los datos del cliente y el doctor para el correo
+                $cliente = DB::table('usuarios')->where('idUsuario', $cita->idCliente)->first();
+                $doctor = DB::table('usuarios')->where('idUsuario', $cita->idDoctor)->first();
+    
+                // Preparar los datos para el correo
+                $citaData = [
+                    'cliente_nombre' => $cliente->nombres . ' ' . $cliente->apellidos,
+                    'doctor_nombre' => $doctor->nombres . ' ' . $doctor->apellidos,
+                    'especialidad' => $cita->especialidad,
+                    'fecha' => $cita->fecha,
+                    'hora' => $cita->hora_inicio,
+                ];
+    
+                // Enviar el correo electrónico
+                Mail::to($cliente->email)->send(new NotificacionCitaEliminadaUsuario($idCita, $citaData));
+    
                 // Confirmar la transacción
                 DB::commit();
     
@@ -834,15 +895,15 @@ class ClienteController extends Controller
     }
 
 
-  // Listar familiares de un usuario
-  public function listarFamiliares($idUsuario)
-  {
-      $familiares = DB::table('familiares_usuarios')
-          ->where('idUsuario', $idUsuario)
-          ->where('estado', 'Activo')
-          ->get();
-      return response()->json($familiares);
-  }
+    // Listar familiares de un usuario
+    public function listarFamiliares($idUsuario)
+    {
+        $familiares = DB::table('familiares_usuarios')
+            ->where('idUsuario', $idUsuario)
+            ->where('estado', 'Activo')
+            ->get();
+        return response()->json($familiares);
+    }
 
     // Crear un nuevo familiar
     public function crearFamiliar(Request $request)

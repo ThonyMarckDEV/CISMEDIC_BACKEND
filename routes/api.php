@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\DB;
         Route::get('/listarStaff', [DoctorController::class, 'listDoctors']);
         Route::get('/listarespecialidadesStaff', [ClienteController::class, 'getEspecialidades']);
         Route::get('/perfildoctor/{idDoctor}', [DoctorController::class, 'obtenerPerfil']);
+
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
 
@@ -79,6 +80,7 @@ use Illuminate\Support\Facades\DB;
         //Rutas para listar las citas
         Route::get('/citas/{userId}', [ClienteController::class, 'obtenerCitas']);
         Route::put('/cancelar-cita/{idCita}', [ClienteController::class, 'cancelarCitaCliente']);
+        Route::get('/proxima-cita/{userId}', [ClienteController::class, 'obtenerCitaProxima']);
 
         Route::get('/cliente/historialcitas/{userId}', [ClienteController::class, 'obtenerHistorialCitasCliente']);
         Route::get('/cliente/historialpagos/{userId}', [ClienteController::class, 'obtenerHistorialPagosCliente']);
