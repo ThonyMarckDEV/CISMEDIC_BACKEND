@@ -433,11 +433,11 @@ class DoctorController extends Controller
 
             // Obtener los datos del cliente y el doctor para el correo
             $cliente = DB::table('usuarios')
-                ->select('idUsuario', 'nombres', 'apellidos', 'email')
+                ->select('idUsuario', 'nombres', 'apellidos', 'correo')
                 ->where('idUsuario', $cita->idCliente)
                 ->first();
 
-            if (!$cliente || !isset($cliente->email)) {
+            if (!$cliente || !isset($cliente->correo)) {
                 return response()->json(['error' => 'Cliente no encontrado o datos incompletos'], 404);
             }
 
