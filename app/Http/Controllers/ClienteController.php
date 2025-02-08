@@ -1066,7 +1066,6 @@ class ClienteController extends Controller
         try {
             // Ajustar la fecha antes de guardar
             $nacimiento = new DateTime($request->nacimiento);
-            $nacimiento->modify('-1 day'); // Restamos un día antes de guardar
             
             // Calcular edad
             $hoy = new DateTime();
