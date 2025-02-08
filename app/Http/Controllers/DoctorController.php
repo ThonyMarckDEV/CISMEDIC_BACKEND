@@ -253,154 +253,6 @@ class DoctorController extends Controller
     }
 
 
-    // public function actualizarEstadoCita(Request $request, $idCita, $idDoctor)
-    // {
-    //     try {
-    //         // Validar los datos de entrada
-    //         $request->validate([
-    //             'estado' => 'required|in:completada,cancelada',
-    //             'motivoCancelacion' => 'nullable|string',
-    //         ]);
-    
-    //         // Verificar que la cita exista y pertenezca al doctor
-    //         $cita = DB::table('citas')
-    //             ->where('idCita', $idCita)
-    //             ->where('idDoctor', $idDoctor)
-    //             ->first();
-    
-    //         if (!$cita) {
-    //             return response()->json(['error' => 'Cita no encontrada o no tienes permisos'], 404);
-    //         }
-    
-    //         // Obtener los pagos asociados antes de iniciar la transacción
-    //         $pagos = DB::table('pagos')
-    //             ->where('idCita', $idCita)
-    //             ->get();
-    
-    //         // Log para debug
-    //         Log::info('Pagos encontrados:', [
-    //             'idCita' => $idCita,
-    //             'cantidad_pagos' => $pagos->count(),
-    //             'pagos' => $pagos
-    //         ]);
-    
-    //         // Iniciar transacción
-    //         DB::beginTransaction();
-    //         try {
-    //             // 1. PRIMERO mover la cita al historial
-    //             $motivoCancelacion = $request->input('estado') === 'cancelada' ? $request->input('motivoCancelacion') : null;
-    
-    //             $citaInserted = DB::table('historial_citas')->insert([
-    //                 'idCita' => $cita->idCita,
-    //                 'idCliente' => $cita->idCliente,
-    //                 'idFamiliarUsuario' => $cita->idFamiliarUsuario,
-    //                 'idDoctor' => $cita->idDoctor,
-    //                 'idHorario' => $cita->idHorario,
-    //                 'especialidad' => $cita->especialidad,
-    //                 'estado' => $request->input('estado'),
-    //                 'motivo' => $motivoCancelacion,
-    //             ]);
-    
-    //             if (!$citaInserted) {
-    //                 throw new \Exception('Error al mover la cita al historial');
-    //             }
-    
-    //             // 2. Actualizar el estado del horario si la cita es completada
-    //             if ($request->input('estado') === 'completada') {
-    //                 $horarioUpdated = DB::table('horarios_doctores')
-    //                     ->where('idHorario', $cita->idHorario)
-    //                     ->update(['estado' => 'eliminado']);
-    
-    //                 if ($horarioUpdated === 0) {
-    //                     throw new \Exception('No se pudo actualizar el estado del horario');
-    //                 }
-    
-    //                 Log::info('Estado del horario actualizado a "eliminado"', [
-    //                     'idHorario' => $cita->idHorario
-    //                 ]);
-    //             }
-    
-    //             // 3. DESPUÉS mover los pagos al historial si existen
-    //             if ($pagos->isNotEmpty()) {
-    //                 Log::info('Moviendo pagos al historial...');
-    
-    //                 foreach ($pagos as $pago) {
-    //                     Log::info('Intentando mover pago:', ['idPago' => $pago->idPago]);
-    
-    //                     // Obtener todos los campos del pago original
-    //                     $pagoData = (array) $pago;
-    
-    //                     // Agregar fecha_movimiento
-    //                     $pagoData['fecha_movimiento'] = now();
-    
-    //                     // Remover cualquier campo que no exista en la tabla historial_pagos
-    //                     unset($pagoData['created_at']);
-    //                     unset($pagoData['updated_at']);
-    
-    //                     $inserted = DB::table('historial_pagos')->insert($pagoData);
-    //                     if (!$inserted) {
-    //                         throw new \Exception('Error al mover el pago ' . $pago->idPago . ' al historial');
-    //                     }
-    //                     Log::info('Pago movido exitosamente:', ['idPago' => $pago->idPago]);
-    //                 }
-    //             }
-    
-    //             // 4. Eliminar los pagos originales si existen
-    //             if ($pagos->isNotEmpty()) {
-    //                 Log::info('Eliminando pagos originales...');
-    
-    //                 $pagosDeleted = DB::table('pagos')
-    //                     ->where('idCita', $idCita)
-    //                     ->delete();
-    
-    //                 if ($pagosDeleted === 0) {
-    //                     throw new \Exception('No se pudieron eliminar los pagos originales');
-    //                 }
-    
-    //                 Log::info('Pagos originales eliminados:', ['cantidad' => $pagosDeleted]);
-    //             }
-    
-    //             // 5. Eliminar la cita original
-    //             $citaDeleted = DB::table('citas')
-    //                 ->where('idCita', $idCita)
-    //                 ->delete();
-    
-    //             if ($citaDeleted === 0) {
-    //                 throw new \Exception('No se pudo eliminar la cita original');
-    //             }
-    
-    //             // Confirmar la transacción
-    //             DB::commit();
-    //             return response()->json([
-    //                 'message' => 'Cita y pagos movidos al historial correctamente',
-    //                 'idCita' => $idCita,
-    //                 'pagos_movidos' => $pagos->count()
-    //             ], 200);
-    //         } catch (\Exception $e) {
-    //             DB::rollback();
-    
-    //             Log::error('Error en la transacción:', [
-    //                 'error' => $e->getMessage(),
-    //                 'trace' => $e->getTraceAsString(),
-    //                 'idCita' => $idCita
-    //             ]);
-    //             return response()->json([
-    //                 'error' => 'Error al procesar la actualización',
-    //                 'details' => $e->getMessage()
-    //             ], 500);
-    //         }
-    //     } catch (\Exception $e) {
-    //         Log::error('Error en validación:', [
-    //             'error' => $e->getMessage(),
-    //             'trace' => $e->getTraceAsString()
-    //         ]);
-    //         return response()->json([
-    //             'error' => 'Error en la validación de datos',
-    //             'details' => $e->getMessage()
-    //         ], 400);
-    //     }
-    // }
-
     public function actualizarEstadoCita(Request $request, $idCita, $idDoctor)
     {
         try {
@@ -457,6 +309,11 @@ class DoctorController extends Controller
                 'motivo' => $request->input('motivoCancelacion'),
             ];
 
+             // Obtener los pagos asociados antes de iniciar la transacción
+            $pagos = DB::table('pagos')
+                ->where('idCita', $idCita)
+                ->get();
+
             // Iniciar transacción
             DB::beginTransaction();
             try {
@@ -473,6 +330,70 @@ class DoctorController extends Controller
                     'estado' => $request->input('estado'),
                     'motivo' => $motivoCancelacion,
                 ]);
+
+                  // 2. Actualizar el estado del horario si la cita es completada
+                if ($request->input('estado') === 'completada') {
+                    $horarioUpdated = DB::table('horarios_doctores')
+                        ->where('idHorario', $cita->idHorario)
+                        ->update(['estado' => 'eliminado']);
+    
+                    if ($horarioUpdated === 0) {
+                        throw new \Exception('No se pudo actualizar el estado del horario');
+                    }
+    
+                    Log::info('Estado del horario actualizado a "eliminado"', [
+                        'idHorario' => $cita->idHorario
+                    ]);
+                }
+    
+                // 3. DESPUÉS mover los pagos al historial si existen
+                if ($pagos->isNotEmpty()) {
+                    Log::info('Moviendo pagos al historial...');
+    
+                    foreach ($pagos as $pago) {
+                        Log::info('Intentando mover pago:', ['idPago' => $pago->idPago]);
+    
+                        // Obtener todos los campos del pago original
+                        $pagoData = (array) $pago;
+    
+                        // Agregar fecha_movimiento
+                        $pagoData['fecha_movimiento'] = now();
+    
+                        // Remover cualquier campo que no exista en la tabla historial_pagos
+                        unset($pagoData['created_at']);
+                        unset($pagoData['updated_at']);
+    
+                        $inserted = DB::table('historial_pagos')->insert($pagoData);
+                        if (!$inserted) {
+                            throw new \Exception('Error al mover el pago ' . $pago->idPago . ' al historial');
+                        }
+                        Log::info('Pago movido exitosamente:', ['idPago' => $pago->idPago]);
+                    }
+                }
+    
+                // 4. Eliminar los pagos originales si existen
+                if ($pagos->isNotEmpty()) {
+                    Log::info('Eliminando pagos originales...');
+    
+                    $pagosDeleted = DB::table('pagos')
+                        ->where('idCita', $idCita)
+                        ->delete();
+    
+                    if ($pagosDeleted === 0) {
+                        throw new \Exception('No se pudieron eliminar los pagos originales');
+                    }
+    
+                    Log::info('Pagos originales eliminados:', ['cantidad' => $pagosDeleted]);
+                }
+    
+                // 5. Eliminar la cita original
+                $citaDeleted = DB::table('citas')
+                    ->where('idCita', $idCita)
+                    ->delete();
+    
+                if ($citaDeleted === 0) {
+                    throw new \Exception('No se pudo eliminar la cita original');
+                }
 
                 // 2. Enviar correo según el estado
                 if ($request->input('estado') === 'completada') {
