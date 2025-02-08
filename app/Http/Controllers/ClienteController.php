@@ -43,25 +43,26 @@ class ClienteController extends Controller
          }
      }
      
-     public function getDoctoresPorEspecialidad($idEspecialidad)
-     {
-         try {
-             $doctores = DB::table('usuarios')
-                 ->join('especialidades_usuarios', 'usuarios.idUsuario', '=', 'especialidades_usuarios.idUsuario')
-                 ->where('usuarios.rol', 'doctor')
-                 ->where('usuarios.estado', 'activo')
-                 ->where('especialidades_usuarios.idEspecialidad', $idEspecialidad)
-                 ->select('usuarios.idUsuario', 'usuarios.nombres', 'usuarios.apellidos')
-                 ->get();
-     
-             return response()->json($doctores);
-         } catch (\Exception $e) {
-             return response()->json([
-                 'error' => 'Error al obtener doctores',
-                 'details' => $e->getMessage()
-             ], 500);
-         }
-     }
+
+    public function getDoctoresPorEspecialidad($idEspecialidad)
+    {
+        try {
+            $doctores = DB::table('usuarios')
+                ->join('especialidades_usuarios', 'usuarios.idUsuario', '=', 'especialidades_usuarios.idUsuario')
+                ->where('usuarios.rol', 'doctor')
+                ->where('usuarios.estado', 'activo')
+                ->where('especialidades_usuarios.idEspecialidad', $idEspecialidad)
+                ->select('usuarios.idUsuario', 'usuarios.nombres', 'usuarios.apellidos', 'usuarios.perfil')
+                ->get();
+        
+            return response()->json($doctores);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al obtener doctores',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
      
 
     public function getHorariosDisponibles($idDoctor, $fecha)
