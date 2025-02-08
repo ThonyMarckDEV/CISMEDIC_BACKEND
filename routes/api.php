@@ -97,6 +97,14 @@ use Illuminate\Support\Facades\DB;
         Route::put('familiares/actualizar/{id}', [ClienteController::class, 'actualizarFamiliar']); // Actualizar familiar
         Route::delete('familiares/eliminar/{id}', [ClienteController::class, 'eliminarFamiliar']); // Borrado lógico
 
+        //RUTAS PARA EL PERFIL CLIENTE
+        // Obtener perfil del cliente
+        Route::get('/cliente/perfil/{idCliente}', [ClienteController::class, 'obtenerPerfil']);
+        // Actualizar foto de perfil
+        Route::post('/cliente/actualizar-foto/{idCliente}', [ClienteController::class, 'actualizarFotoPerfil']);
+        // Actualizar datos del cliente
+        Route::post('/cliente/actualizar-datos/{idCliente}', [ClienteController::class, 'actualizarDatos']);
+
     });
 
 

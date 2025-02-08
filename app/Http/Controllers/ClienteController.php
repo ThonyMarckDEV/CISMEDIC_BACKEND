@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\ConfirmacionCita;
 use App\Mail\ConfirmacionPago;
+use DateTime;
+use DateTimeZone;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -1005,4 +1007,131 @@ class ClienteController extends Controller
             ], 500);
         }
     }
+
+    //PARA EL PERFIL
+   
+    public function obtenerPerfil($idCliente)
+    {
+        // Obtener datos del usuario
+        $usuario = DB::table('usuarios')
+            ->where('idUsuario', $idCliente)
+            ->first();
+
+        // Verificar si el usuario existe
+        if (!$usuario) {
+            return response()->json([
+                'error' => 'Usuario no encontrado'
+            ], 404);
+        }
+
+        // Calcular edad y ajustar fecha de nacimiento
+        $edad = null;
+        $fechaNacimiento = null;
+        
+        if ($usuario->nacimiento) {
+            // Crear fecha de nacimiento y agregar un día para compensar
+            $nacimiento = new DateTime($usuario->nacimiento);
+            $nacimiento->modify('+1 day');
+            
+            // Calcular edad
+            $hoy = new DateTime();
+            $edad = $nacimiento->diff($hoy)->y;
+            
+            // Formatear fecha para el JSON
+            $fechaNacimiento = $nacimiento->format('Y-m-d');
+        }
+
+        return response()->json([
+            'nombre' => $usuario->nombres . ' ' . $usuario->apellidos,
+            'foto_perfil' => $usuario->perfil,
+            'email' => $usuario->correo,
+            'telefono' => $usuario->telefono,
+            'nacimiento' => $fechaNacimiento,
+            'sexo' => $usuario->sexo,
+            'dni' => $usuario->dni,
+            'edad' => $edad
+        ]);
+    }
+
+    // También necesitamos ajustar la función de actualización para mantener la consistencia
+    public function actualizarDatos(Request $request, $idCliente)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'telefono' => 'required|string',
+            'nacimiento' => 'required|date',
+            'sexo' => 'required|in:M,F'
+        ]);
+
+        try {
+            // Ajustar la fecha antes de guardar
+            $nacimiento = new DateTime($request->nacimiento);
+            $nacimiento->modify('-1 day'); // Restamos un día antes de guardar
+            
+            // Calcular edad
+            $hoy = new DateTime();
+            $edad = $nacimiento->diff($hoy)->y;
+
+            // Actualizar datos del usuario
+            DB::table('usuarios')
+                ->where('idUsuario', $idCliente)
+                ->update([
+                    'correo' => $request->email,
+                    'telefono' => $request->telefono,
+                    'nacimiento' => $nacimiento->format('Y-m-d'),
+                    'sexo' => $request->sexo,
+                    'edad' => $edad
+                ]);
+
+            return response()->json([
+                'message' => 'Datos actualizados correctamente',
+                'edad' => $edad
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al actualizar los datos'
+            ], 500);
+        }
+    }
+
+    public function actualizarFotoPerfil(Request $request, $idCliente)
+    {
+        // Validar la solicitud
+        $request->validate([
+            'foto' => 'required|image|max:2048'
+        ]);
+
+        // Buscar al usuario por su ID
+        $usuario = DB::table('usuarios')->where('idUsuario', $idCliente)->first();
+        if (!$usuario) {
+            return response()->json(['success' => false, 'message' => 'Usuario no encontrado'], 404);
+        }
+
+        // Verificar si hay un archivo en la solicitud
+        if ($request->hasFile('foto')) {
+            $path = "profiles/$idCliente";
+
+            // Eliminar la imagen anterior si existe
+            if ($usuario->perfil && Storage::disk('public')->exists($usuario->perfil)) {
+                Storage::disk('public')->delete($usuario->perfil);
+            }
+
+            // Guardar la nueva imagen
+            $filename = $request->file('foto')->store($path, 'public');
+
+            // Actualizar la ruta en la base de datos
+            DB::table('usuarios')
+                ->where('idUsuario', $idCliente)
+                ->update(['perfil' => $filename]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto actualizada correctamente',
+                'ruta' => $filename
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'No se cargó la imagen'], 400);
+    }
+
 }

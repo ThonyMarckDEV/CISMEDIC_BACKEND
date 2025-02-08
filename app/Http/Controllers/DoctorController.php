@@ -772,48 +772,58 @@ class DoctorController extends Controller
         }
     }
 
-    public function obtenerPerfil($idDoctor) 
+    
+    public function obtenerPerfil($idDoctor)
     {
         // Obtener datos del usuario
         $usuario = DB::table('usuarios')
             ->where('idUsuario', $idDoctor)
             ->first();
-        
+    
         // Verificar si el usuario existe
         if (!$usuario) {
             return response()->json([
                 'error' => 'Usuario no encontrado'
             ], 404);
         }
-        
-        // Calcular edad
+    
+        // Calcular edad y ajustar fecha de nacimiento
         $edad = null;
+        $fechaNacimiento = null;
+        
         if ($usuario->nacimiento) {
+            // Crear fecha de nacimiento y agregar un día para compensar
             $nacimiento = new DateTime($usuario->nacimiento);
+            $nacimiento->modify('+1 day');
+            
+            // Calcular edad
             $hoy = new DateTime();
             $edad = $nacimiento->diff($hoy)->y;
+            
+            // Formatear fecha para el JSON
+            $fechaNacimiento = $nacimiento->format('Y-m-d');
         }
-        
+    
         // Obtener idiomas del doctor
         $idiomas = DB::table('idiomas_doctor')
             ->where('idDoctor', $idDoctor)
             ->pluck('idioma');
-        
+    
         // Contar la cantidad de idiomas
         $cantidadIdiomas = $idiomas->count();
-        
+    
         // Obtener educación del doctor
         $educacion = DB::table('educacion_doctor')
             ->where('idDoctor', $idDoctor)
             ->get();
-        
+    
         // Obtener la especialidad del doctor
         $especialidad = DB::table('especialidades as e')
             ->join('especialidades_usuarios as eu', 'e.idEspecialidad', '=', 'eu.idEspecialidad')
             ->where('eu.idUsuario', $idDoctor)
             ->select('e.nombre as especialidad')
             ->first();
-        
+    
         return response()->json([
             'nombre' => $usuario->nombres . ' ' . $usuario->apellidos,
             'foto_perfil' => $usuario->perfil,
@@ -822,7 +832,7 @@ class DoctorController extends Controller
             'idiomas' => $idiomas,
             'cantidadIdiomas' => $cantidadIdiomas,
             'educacion' => $educacion,
-            'nacimiento' => $usuario->nacimiento,
+            'nacimiento' => $fechaNacimiento,  // Usamos la fecha ajustada
             'edad' => $edad
         ]);
     }
