@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\DB;
         //Rutas para listar medicos
         Route::get('/listarStaff', [DoctorController::class, 'listDoctors']);
         Route::get('/listarespecialidadesStaff', [ClienteController::class, 'getEspecialidades']);
+        Route::get('/perfildoctor/{idDoctor}', [DoctorController::class, 'obtenerPerfil']);
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
 
