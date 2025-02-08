@@ -6,22 +6,19 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class NotificacionCitaEliminadaUsuario extends Mailable
+class NotificacionCitaCancelada extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $idCita; // ID de la cita cancelada
-    public $citaData; // Datos de la cita (cliente, doctor, fecha, etc.)
+    public $citaData;
 
     /**
      * Create a new message instance.
      *
-     * @param int $idCita
      * @param array $citaData
      */
-    public function __construct($idCita, $citaData)
+    public function __construct($citaData)
     {
-        $this->idCita = $idCita;
         $this->citaData = $citaData;
     }
 
@@ -33,6 +30,6 @@ class NotificacionCitaEliminadaUsuario extends Mailable
     public function build()
     {
         return $this->subject('Notificación: Cita Cancelada - CISMEDIC')
-                    ->view('emails.notificacion-cita-eliminada-usuario');
+                    ->view('emails.notificacion-cita-cancelada');
     }
 }

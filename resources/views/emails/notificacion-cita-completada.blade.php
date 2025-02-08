@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notificación de Cita Cancelada - CISMEDIC</title>
+    <title>Notificación de Cita Completada - CISMEDIC</title>
     <style>
-        /* Estilos básicos */
         body {
             font-family: Arial, sans-serif;
             background-color: #f8f9fa;
@@ -38,32 +37,19 @@
             font-size: 14px;
             color: #777;
         }
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: #ffffff !important;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 16px;
-            margin-top: 20px;
-        }
-        .button:hover {
-            background-color: #0056b3;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Notificación de Cita Cancelada</h1>
+        <h1>Notificación de Cita Completada</h1>
         <p>Hola <strong>{{ $citaData['cliente_nombre'] }}</strong>,</p>
-        <p>Has cancelado tu cita con ID <strong>{{ $idCita }}</strong> satisfactoriamente.</p>
+        <p>Tu cita con ID <strong>{{ $citaData['idCita'] }}</strong> ha sido marcada como completada.</p>
         <h3>Detalles de la Cita:</h3>
         <p><strong>Doctor:</strong> {{ $citaData['doctor_nombre'] }}</p>
         <p><strong>Especialidad:</strong> {{ $citaData['especialidad'] }}</p>
         <p><strong>Fecha:</strong> {{ $citaData['fecha'] }}</p>
         <p><strong>Hora:</strong> {{ $citaData['hora'] }}</p>
-        <p>Si tienes alguna pregunta o necesitas reagendar tu cita, no dudes en hacerlo en el apartado Nueva Cita.</p>
+        <p>Gracias por confiar en nosotros. Puedes consultar los detalles de esta cita en tu historial.</p>
         <div class="footer">
             <p>Saludos,</p>
             <p>El equipo de <strong>CISMEDIC</strong></p>
