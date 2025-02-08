@@ -31,6 +31,10 @@ use Illuminate\Support\Facades\DB;
         Route::post('/webhook/mercadopago', [PaymentController::class, 'recibirPago']);
 
         Route::post('/procesar-citas-expiradas', [TaskController::class, 'procesarCitasExpiradas']);
+
+        //Rutas para listar medicos
+        Route::get('/listarStaff', [DoctorController::class, 'listDoctors']);
+        Route::get('/listarespecialidadesStaff', [ClienteController::class, 'getEspecialidades']);
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
 

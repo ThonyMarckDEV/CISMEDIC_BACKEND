@@ -24,6 +24,44 @@ use Illuminate\Support\Facades\Mail;
 
 class DoctorController extends Controller
 {
+
+   
+
+    public function listDoctors(Request $request)
+    {
+        $search = $request->input('search');
+        $specialty = $request->input('specialty');
+    
+        $query = DB::table('usuarios')
+            ->select(
+                'usuarios.idUsuario',
+                'usuarios.nombres',
+                'usuarios.apellidos',
+                'usuarios.perfil',
+                'especialidades.nombre as especialidad'
+            )
+            ->join('especialidades_usuarios', 'usuarios.idUsuario', '=', 'especialidades_usuarios.idUsuario')
+            ->join('especialidades', 'especialidades_usuarios.idEspecialidad', '=', 'especialidades.idEspecialidad')
+            ->where('usuarios.rol', 'doctor');
+    
+        if ($specialty) {
+            $query->where('especialidades.nombre', 'LIKE', "%$specialty%");
+        }
+    
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('usuarios.nombres', 'LIKE', "%$search%")
+                    ->orWhere('usuarios.apellidos', 'LIKE', "%$search%")
+                    ->orWhere(DB::raw("CONCAT(usuarios.nombres, ' ', usuarios.apellidos)"), 'LIKE', "%$search%");
+            });
+        }
+    
+        $doctors = $query->get();
+    
+        return response()->json($doctors);
+    }
+    
+
     public function obtenerCitasDoctor($idDoctor)
     {
         try {
