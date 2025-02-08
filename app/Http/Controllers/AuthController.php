@@ -159,6 +159,7 @@ class AuthController extends Controller
                 'correo' => $request->correo,
                 'edad' => $edad, // Edad calculada
                 'nacimiento' => $request->nacimiento,
+                'sexo'=>null,
                 'telefono' => $request->telefono ?? null,
                 'password' => bcrypt($request->password),
                 'estado'    => 'activo',

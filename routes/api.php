@@ -33,6 +33,9 @@ use Illuminate\Support\Facades\DB;
         Route::post('/procesar-citas-expiradas', [TaskController::class, 'procesarCitasExpiradas']);
 
 
+
+        Route::get('/cliente/historialcitas/{userId}', [ClienteController::class, 'obtenerHistorialCitasCliente']);
+        Route::get('/cliente/historialpagos/{userId}', [ClienteController::class, 'obtenerHistorialPagosCliente']);
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
 
@@ -77,8 +80,7 @@ use Illuminate\Support\Facades\DB;
         Route::get('/citas/{userId}', [ClienteController::class, 'obtenerCitas']);
         Route::put('/cancelar-cita/{idCita}', [ClienteController::class, 'cancelarCitaCliente']);
 
-        Route::get('/cliente/historialcitas/{userId}', [ClienteController::class, 'obtenerHistorialCitasCliente']);
-        Route::get('/cliente/historialpagos/{userId}', [ClienteController::class, 'obtenerHistorialPagosCliente']);
+     
 
         //Rutas para mercado pago
         Route::post('/payment/preference', [PaymentController::class, 'createPreference']);
