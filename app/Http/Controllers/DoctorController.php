@@ -698,7 +698,6 @@ class DoctorController extends Controller
     
         return response()->json([
             'nombre' => $usuario->nombres . ' ' . $usuario->apellidos,
-            'email' => $usuario->correo,
             'foto_perfil' => $usuario->perfil,
             'especialidad' => $especialidad ? $especialidad->especialidad : null,
             'experiencia' => $usuario->experiencia,

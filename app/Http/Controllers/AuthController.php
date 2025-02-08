@@ -153,6 +153,7 @@ class AuthController extends Controller
             $user = Usuario::create([
                 'username' => $username, // Username generado
                 'rol' => 'cliente', // Rol por defecto
+                'experiencia'=>null,
                 'nombres' => $request->nombres,
                 'apellidos' => $request->apellidos,
                 'dni' => $request->dni,
