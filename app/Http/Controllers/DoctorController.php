@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\ConfirmacionCita;
 use App\Mail\ConfirmacionPago;
+use DateTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -615,6 +616,14 @@ class DoctorController extends Controller
             'idiomas.*' => 'required|string'
         ]);
 
+         // Verificar si el usuario existe
+         if (!$idDoctor) {
+            return response()->json([
+                'error' => 'Usuario no encontrado'
+            ], 404);
+        }
+    
+
         // Eliminar idiomas actuales del doctor
         DB::table('idiomas_doctor')
             ->where('idDoctor', $idDoctor)
@@ -643,6 +652,13 @@ class DoctorController extends Controller
             'educacion.*.institucion' => 'required|string',
             'educacion.*.anio' => 'required|string'
         ]);
+
+       // Verificar si el usuario existe
+        if (!$idDoctor) {
+            return response()->json([
+                'error' => 'Usuario no encontrado'
+            ], 404);
+        }
     
         // Eliminar educación actual del doctor
         DB::table('educacion_doctor')
@@ -665,44 +681,113 @@ class DoctorController extends Controller
         ]);
     }
   
-    public function obtenerPerfil($idDoctor)
+    // DoctorController.php
+    public function actualizarExperiencia(Request $request, $idDoctor)
+    {
+        try {
+            // Verificar si el usuario existe
+            if (!$idDoctor) {
+                return response()->json([
+                    'error' => 'Usuario no encontrado'
+                ], 404);
+            }
+
+            DB::table('usuarios')
+                ->where('idUsuario', $idDoctor)
+                ->update(['experiencia' => $request->experiencia]);
+
+            return response()->json([
+                'message' => 'Experiencia actualizada correctamente',
+                'experiencia' => $request->experiencia
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al actualizar la experiencia'
+            ], 500);
+        }
+    }
+
+    public function actualizarNacimiento(Request $request, $idDoctor)
+    {
+        try {
+            // Calcular edad basada en la fecha de nacimiento
+            $nacimiento = new DateTime($request->nacimiento);
+            $hoy = new DateTime();
+            $edad = $nacimiento->diff($hoy)->y;
+    
+            // Actualizar tanto la fecha de nacimiento como la edad
+            DB::table('usuarios')
+                ->where('idUsuario', $idDoctor)
+                ->update([
+                    'nacimiento' => $request->nacimiento,
+                    'edad' => $edad
+                ]);
+                
+            return response()->json([
+                'message' => 'Fecha de nacimiento y edad actualizadas correctamente',
+                'edad' => $edad
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al actualizar la fecha de nacimiento y edad'
+            ], 500);
+        }
+    }
+
+    public function obtenerPerfil($idDoctor) 
     {
         // Obtener datos del usuario
         $usuario = DB::table('usuarios')
             ->where('idUsuario', $idDoctor)
             ->first();
-    
+        
         // Verificar si el usuario existe
         if (!$usuario) {
             return response()->json([
                 'error' => 'Usuario no encontrado'
             ], 404);
         }
-    
+        
+        // Calcular edad
+        $edad = null;
+        if ($usuario->nacimiento) {
+            $nacimiento = new DateTime($usuario->nacimiento);
+            $hoy = new DateTime();
+            $edad = $nacimiento->diff($hoy)->y;
+        }
+        
         // Obtener idiomas del doctor
         $idiomas = DB::table('idiomas_doctor')
             ->where('idDoctor', $idDoctor)
             ->pluck('idioma');
-    
+        
+        // Contar la cantidad de idiomas
+        $cantidadIdiomas = $idiomas->count();
+        
         // Obtener educación del doctor
         $educacion = DB::table('educacion_doctor')
             ->where('idDoctor', $idDoctor)
             ->get();
-    
+        
         // Obtener la especialidad del doctor
         $especialidad = DB::table('especialidades as e')
             ->join('especialidades_usuarios as eu', 'e.idEspecialidad', '=', 'eu.idEspecialidad')
             ->where('eu.idUsuario', $idDoctor)
             ->select('e.nombre as especialidad')
             ->first();
-    
+        
         return response()->json([
             'nombre' => $usuario->nombres . ' ' . $usuario->apellidos,
             'foto_perfil' => $usuario->perfil,
             'especialidad' => $especialidad ? $especialidad->especialidad : null,
             'experiencia' => $usuario->experiencia,
             'idiomas' => $idiomas,
-            'educacion' => $educacion
+            'cantidadIdiomas' => $cantidadIdiomas,
+            'educacion' => $educacion,
+            'nacimiento' => $usuario->nacimiento,
+            'edad' => $edad
         ]);
     }
+    
+
 }

@@ -124,7 +124,8 @@ use Illuminate\Support\Facades\DB;
         Route::post('/doctor/actualizar-idiomas/{idDoctor}', [DoctorController::class, 'actualizarIdiomas']);
         Route::post('/doctor/actualizar-educacion/{idDoctor}', [DoctorController::class, 'actualizarEducacion']);
         Route::get('/doctor/perfil/{idDoctor}', [DoctorController::class, 'obtenerPerfil']);
-
+        Route::post('/doctor/actualizar-experiencia/{idDoctor}', [DoctorController::class, 'actualizarExperiencia']);
+        Route::post('/doctor/actualizar-nacimiento/{idDoctor}', [DoctorController::class, 'actualizarNacimiento']);
 
     });
 
