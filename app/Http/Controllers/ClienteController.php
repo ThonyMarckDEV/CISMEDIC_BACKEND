@@ -250,28 +250,39 @@ class ClienteController extends Controller
             'idHorario' => 'required|integer|exists:horarios_doctores,idHorario',
             'especialidad' => 'required|integer|exists:especialidades,idEspecialidad',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
         }
-
+    
         try {
             // Verificar si el horario está activo
             $horario = DB::table('horarios_doctores')
                 ->where('idHorario', $request->idHorario)
                 ->first();
-
+    
             if (!$horario || $horario->estado !== 'activo') {
                 return response()->json([
                     'error' => 'El horario seleccionado ya no está disponible.'
                 ], 409); // Código HTTP 409: Conflict
             }
-
+    
+            // Verificar si el horario ya ha sido tomado por otra cita
+            $citaExistente = DB::table('citas')
+                ->where('idHorario', $request->idHorario)
+                ->first();
+    
+            if ($citaExistente) {
+                return response()->json([
+                    'error' => 'El horario seleccionado ya ha sido reservado por otro cliente.'
+                ], 409); // Código HTTP 409: Conflict
+            }
+    
             // Obtener el nombre de la especialidad
             $especialidadnombre = DB::table('especialidades')
                 ->where('idEspecialidad', $request->especialidad)
                 ->value('nombre');
-
+    
             // Insertar la cita en la tabla `citas`
             DB::table('citas')->insert([
                 'idCliente' => $request->idCliente,
@@ -282,14 +293,14 @@ class ClienteController extends Controller
                 'estado' => 'pago pendiente',
                 'motivo' => null
             ]);
-
+    
             // Obtener el ID de la cita recién creada
             $idCita = DB::getPdo()->lastInsertId();
-
+    
             // Obtener los datos del cliente, doctor y horario
             $cliente = DB::table('usuarios')->where('idUsuario', $request->idCliente)->first();
             $doctor = DB::table('usuarios')->where('idUsuario', $request->idDoctor)->first();
-
+    
             // Crear un objeto con los datos de la cita para el correo
             $citaData = [
                 'doctor_nombre' => $doctor->nombres . ' ' . $doctor->apellidos,
@@ -298,22 +309,22 @@ class ClienteController extends Controller
                 'especialidad' => $especialidadnombre,
                 'estado' => 'pago pendiente',
             ];
-
+    
             // Obtener el costo desde la tabla `horarios_doctores`
             $costo = $horario->costo;
-
+    
             // Crear un objeto con los datos del pago
             $pagoData = [
                 'idCita' => $idCita,
                 'costo' => $costo,
             ];
-
+    
             // Enviar el correo de confirmación de la cita
             Mail::to($cliente->correo)->send(new ConfirmacionCita($cliente, $citaData));
-
+    
             // Enviar el correo de notificación de pago pendiente
             Mail::to($cliente->correo)->send(new NotificacionPagoPendiente($cliente, $citaData, (object)$pagoData));
-
+    
             return response()->json([
                 'message' => 'Cita agendada exitosamente',
                 'idCita' => $idCita,
