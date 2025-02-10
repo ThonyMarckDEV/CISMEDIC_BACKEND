@@ -39,7 +39,7 @@ class AdminController extends Controller
     public function subirResultados(Request $request)
     {
         Log::info('Iniciando subida de resultados', ['request' => $request->all()]);
-    
+
         try {
             // Validación
             $request->validate([
@@ -52,17 +52,18 @@ class AdminController extends Controller
                 'nombres' => 'required_if:esPacienteNuevo,true',
                 'apellidos' => 'required_if:esPacienteNuevo,true',
                 'dni' => 'required_if:esPacienteNuevo,true',
-                'observaciones' => 'nullable|string', // Campo opcional
+                'titulo' => 'required|string', // Nuevo campo obligatorio
+                'observaciones' => 'required|string', // Ahora es obligatorio
             ]);
-    
+
             DB::beginTransaction();
-    
+
             if (!$request->hasFile('archivo')) {
                 throw new \Exception('No se cargó ningún archivo');
             }
-    
+
             $fechaCita = date('Y-m-d', strtotime($request->fechaCita));
-    
+
             // Determinar ruta y guardar archivo
             if ($request->esPacienteNuevo) {
                 $nombreCarpeta = Str::slug($request->nombres . ' ' . $request->apellidos . ' ' . $request->dni);
@@ -70,16 +71,16 @@ class AdminController extends Controller
             } else {
                 $path = "resultados/{$request->idPaciente}/{$fechaCita}";
             }
-    
+
             $archivo = $request->file('archivo');
             $extension = $archivo->getClientOriginalExtension();
             $nombreArchivo = Str::random(40) . '.' . $extension;
             $rutaArchivo = $archivo->storeAs($path, $nombreArchivo, 'public');
-    
+
             if (!$rutaArchivo) {
                 throw new \Exception('Error al guardar el archivo');
             }
-    
+
             // Insertar en base de datos
             $idResultado = DB::table('resultados_pacientes')->insertGetId([
                 'idUsuario' => $request->esPacienteNuevo ? null : $request->idPaciente,
@@ -91,9 +92,10 @@ class AdminController extends Controller
                 'es_paciente_nuevo' => $request->esPacienteNuevo ? 1 : 0,
                 'metodo_contacto' => $request->metodoContacto,
                 'info_contacto' => $request->infoContacto,
-                'observaciones' => $request->observaciones, // Agregar observaciones
+                'titulo' => $request->titulo, // Guardar el título
+                'observaciones' => $request->observaciones, // Guardar observaciones
             ]);
-    
+
             // Enviar notificaciones
             $urlDescarga = asset('storage/' . $rutaArchivo);
             $datosCorreo = [
@@ -101,9 +103,11 @@ class AdminController extends Controller
                 'apellidos' => $request->esPacienteNuevo ? $request->apellidos : '',
                 'fechaCita' => $fechaCita,
                 'rutaArchivo' => $rutaArchivo,
-                'esNuevo' => $request->esPacienteNuevo
+                'esNuevo' => $request->esPacienteNuevo,
+                'titulo' => $request->titulo, // Incluir el título en el correo
+                'observaciones' => $request->observaciones, // Incluir observaciones en el correo
             ];
-    
+
             if ($request->esPacienteNuevo) {
                 // Paciente nuevo - enviar correo
                 Mail::to($request->infoContacto)->send(new ResultadosMedicos($datosCorreo));
@@ -112,35 +116,35 @@ class AdminController extends Controller
                 $usuario = DB::table('usuarios')
                     ->where('idUsuario', $request->idPaciente)
                     ->first();
-    
+
                 if ($usuario) {
                     $datosCorreo['nombres'] = $usuario->nombres;
                     $datosCorreo['apellidos'] = $usuario->apellidos;
-    
+
                     Mail::to($usuario->correo)->send(new ResultadosMedicos($datosCorreo));
                 }
             }
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'exito' => true,
                 'mensaje' => 'Resultados subidos exitosamente',
                 'idResultado' => $idResultado,
                 'ruta' => $rutaArchivo
             ]);
-    
+
         } catch (\Exception $e) {
             DB::rollBack();
             if (isset($rutaArchivo)) {
                 Storage::disk('public')->delete($rutaArchivo);
             }
-    
+
             Log::error('Error al subir resultados', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-    
+
             return response()->json([
                 'exito' => false,
                 'mensaje' => 'Error al subir resultados: ' . $e->getMessage()

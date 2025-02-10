@@ -1093,4 +1093,44 @@ class ClienteController extends Controller
             ], 500);
         }
     }
+
+    public function obtenerResultados(Request $request, $idUsuario)
+    {
+        try {
+            // Validar que el ID del usuario sea numérico y exista
+            if (!is_numeric($idUsuario) || intval($idUsuario) <= 0) {
+                return response()->json(['error' => 'ID de usuario inválido'], 400);
+            }
+
+            // Parámetros opcionales para filtrar por fecha
+            $fechaInicio = $request->input('fecha_inicio');
+            $fechaFin = $request->input('fecha_fin');
+
+            // Consulta base: obtener resultados del usuario específico
+            $query = DB::table('resultados_pacientes')
+                ->where('idUsuario', $idUsuario); // Filtrar por el ID del usuario
+
+            // Aplicar filtros de fecha si están presentes
+            if ($fechaInicio && $fechaFin) {
+                $query->whereBetween('fecha_cita', [$fechaInicio, $fechaFin]);
+            } elseif ($fechaInicio) {
+                $query->where('fecha_cita', '>=', $fechaInicio);
+            } elseif ($fechaFin) {
+                $query->where('fecha_cita', '<=', $fechaFin);
+            }
+
+            // Ejecutar consulta
+            $resultados = $query->orderBy('fecha_cita', 'desc')->get();
+
+            // Formatear rutas para incluir el dominio
+            $resultados->map(function ($resultado) {
+                $resultado->url_descarga = asset('storage/' . $resultado->ruta_archivo);
+                return $resultado;
+            });
+
+            return response()->json(['resultados' => $resultados]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener resultados: ' . $e->getMessage()], 500);
+        }
+    }
 }

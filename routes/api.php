@@ -120,6 +120,10 @@ use Illuminate\Support\Facades\DB;
         // Actualizar datos del cliente
         Route::post('/cliente/actualizar-datos/{idCliente}', [ClienteController::class, 'actualizarDatos']);
 
+        //Ruta listar resultados
+
+        Route::get('/cliente/resultados/{idUsuario}', [ClienteController::class, 'obtenerResultados']);
+
     });
 
 
