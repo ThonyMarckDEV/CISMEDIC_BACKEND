@@ -104,7 +104,8 @@ use Illuminate\Support\Facades\DB;
 
         //Ruta descargar boleta por idCita
         Route::get('/descargar-boleta/{idCita}', [PaymentController::class, 'descargarBoleta']);
-
+        //Ruta descargar resultados de laboratorio por idResultado
+        Route::get('/descargar-resultado/{idResultado}', [ClienteController::class, 'descargarResultado']);
         
         //PARA FAMIKARIES EN CLIENTE
         Route::get('familiares/listar/{idUsuario}', [ClienteController::class, 'listarFamiliares']); // Listar familiares

@@ -1101,15 +1101,15 @@ class ClienteController extends Controller
             if (!is_numeric($idUsuario) || intval($idUsuario) <= 0) {
                 return response()->json(['error' => 'ID de usuario inválido'], 400);
             }
-
+    
             // Parámetros opcionales para filtrar por fecha
             $fechaInicio = $request->input('fecha_inicio');
             $fechaFin = $request->input('fecha_fin');
-
+    
             // Consulta base: obtener resultados del usuario específico
             $query = DB::table('resultados_pacientes')
                 ->where('idUsuario', $idUsuario); // Filtrar por el ID del usuario
-
+    
             // Aplicar filtros de fecha si están presentes
             if ($fechaInicio && $fechaFin) {
                 $query->whereBetween('fecha_cita', [$fechaInicio, $fechaFin]);
@@ -1118,19 +1118,70 @@ class ClienteController extends Controller
             } elseif ($fechaFin) {
                 $query->where('fecha_cita', '<=', $fechaFin);
             }
-
+    
             // Ejecutar consulta
             $resultados = $query->orderBy('fecha_cita', 'desc')->get();
-
-            // Formatear rutas para incluir el dominio
+    
+            // Formatear rutas para incluir el dominio y manejar observaciones vacías
             $resultados->map(function ($resultado) {
                 $resultado->url_descarga = asset('storage/' . $resultado->ruta_archivo);
+                $resultado->observaciones = $resultado->observaciones ?? "No hay observaciones disponibles";
                 return $resultado;
             });
-
+    
             return response()->json(['resultados' => $resultados]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener resultados: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function descargarResultado($idResultado)
+    {
+        try {
+            // Obtener la información del resultado desde la base de datos
+            $resultado = DB::table('resultados_pacientes')
+                ->where('idResultados', $idResultado)
+                ->first();
+
+            if (!$resultado) {
+                return response()->json([
+                    'error' => "No se encontró el resultado con ID #{$idResultado}"
+                ], 404);
+            }
+
+            // Construir la ruta del archivo
+            $rutaArchivo = public_path("storage/" . $resultado->ruta_archivo);
+
+            // Verificar si el archivo existe
+            if (!file_exists($rutaArchivo)) {
+                Log::error("Archivo no encontrado: {$rutaArchivo}");
+                return response()->json([
+                    'error' => "El archivo del resultado #{$idResultado} no existe"
+                ], 404);
+            }
+
+            // Verificar que el archivo es legible
+            if (!is_readable($rutaArchivo)) {
+                Log::error("Archivo no legible: {$rutaArchivo}");
+                return response()->json([
+                    'error' => 'El archivo existe pero no se puede acceder'
+                ], 403);
+            }
+
+            // Devolver el archivo para su descarga
+            return response()->file($rutaArchivo, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . basename($rutaArchivo) . '"',
+                'Cache-Control' => 'no-cache'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error al descargar resultado #{$idResultado}: " . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Error al procesar la descarga del resultado',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }
