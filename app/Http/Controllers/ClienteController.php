@@ -1093,45 +1093,4 @@ class ClienteController extends Controller
             ], 500);
         }
     }
-
-    public function actualizarFotoPerfil(Request $request, $idCliente)
-    {
-        // Validar la solicitud
-        $request->validate([
-            'foto' => 'required|image|max:2048'
-        ]);
-
-        // Buscar al usuario por su ID
-        $usuario = DB::table('usuarios')->where('idUsuario', $idCliente)->first();
-        if (!$usuario) {
-            return response()->json(['success' => false, 'message' => 'Usuario no encontrado'], 404);
-        }
-
-        // Verificar si hay un archivo en la solicitud
-        if ($request->hasFile('foto')) {
-            $path = "profiles/$idCliente";
-
-            // Eliminar la imagen anterior si existe
-            if ($usuario->perfil && Storage::disk('public')->exists($usuario->perfil)) {
-                Storage::disk('public')->delete($usuario->perfil);
-            }
-
-            // Guardar la nueva imagen
-            $filename = $request->file('foto')->store($path, 'public');
-
-            // Actualizar la ruta en la base de datos
-            DB::table('usuarios')
-                ->where('idUsuario', $idCliente)
-                ->update(['perfil' => $filename]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Foto actualizada correctamente',
-                'ruta' => $filename
-            ]);
-        }
-
-        return response()->json(['success' => false, 'message' => 'No se cargó la imagen'], 400);
-    }
-
 }

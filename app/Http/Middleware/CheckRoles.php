@@ -27,7 +27,7 @@ class CheckRoles
             $userRole = $payload->get('rol');  // Obtiene el rol del token
 
             // Definir los roles permitidos manualmente
-            $allowedRoles = ['cliente','superadmin','doctor']; // Roles permitidos
+            $allowedRoles = ['cliente','admin','doctor']; // Roles permitidos
 
             // Log para verificar los roles permitidos y el rol del usuario
         //    Log::info('Roles permitidos: ' . implode(', ', $allowedRoles));

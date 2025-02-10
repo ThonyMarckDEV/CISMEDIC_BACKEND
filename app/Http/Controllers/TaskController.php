@@ -12,50 +12,6 @@ use Illuminate\Support\Facades\Mail;
 
 class TaskController extends Controller
 {
-    // public function procesarCitasExpiradas(Request $request)
-    // {
-    //     // Verificar el código de seguridad
-    //     $codigoRecibido = $request->input('codigo');
-    //     $codigoCorrecto = Config::get('app.cron_code', env('CRON_CODE'));
-    
-    //     if ($codigoRecibido !== $codigoCorrecto) {
-    //         Log::warning("Intento de acceso no autorizado al cron job.");
-    //         return response()->json(['error' => 'Acceso no autorizado'], 403);
-    //     }
-    
-    //     // Calcular el límite de tiempo: hora actual - 10 minutos
-    //     $limiteTiempo = Carbon::now()->subMinutes(10)->format('H:i:s'); // Solo hora para comparar con `hora_generacion`
-    
-    //     // Obtener citas expiradas que cumplen con las condiciones
-    //     $citasExpiradas = DB::table('citas as c')
-    //         ->join('usuarios as u', 'c.idCliente', '=', 'u.idUsuario')
-    //         ->leftJoin('pagos as p', 'c.idCita', '=', 'p.idCita')
-    //         ->where('c.estado', 'pago pendiente') // Solo citas en estado "pago pendiente"
-    //         ->where(function ($query) {
-    //             $query->whereNull('p.idPago') // No tiene pago asociado
-    //                   ->orWhere('p.estado', '!=', 'pagado'); // O el pago no está en estado "pagado"
-    //         })
-    //         ->whereRaw("TIME(p.hora_generacion) <= ?", [$limiteTiempo]) // Comparar solo la hora
-    //         ->select('c.idCita', 'u.correo')
-    //         ->get();
-    
-    //     foreach ($citasExpiradas as $cita) {
-    //         // Obtener los datos de la cita
-    //         $citaData = $this->obtenerDatosCita($cita->idCita);
-    
-    //         // Enviar notificación antes de eliminar
-    //         $this->enviarCorreo($cita->correo, $cita->idCita, $citaData);
-    
-    //         // Eliminar la cita
-    //         DB::table('citas')
-    //             ->where('idCita', $cita->idCita)
-    //             ->delete();
-    
-    //         Log::info("Cita con ID {$cita->idCita} eliminada y correo enviado a {$cita->correo}.");
-    //     }
-    
-    //     return response()->json(['message' => 'Citas procesadas correctamente']);
-    // }
 
     public function procesarCitasExpiradas(Request $request)
     {
