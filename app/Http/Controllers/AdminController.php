@@ -151,5 +151,104 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+   
+    public function listarResultadosAdmin(Request $request)
+    {
+        try {
+            // Parámetros de búsqueda
+            $search = $request->input('search');
+            $fechaInicio = $request->input('fecha_inicio');
+            $fechaFin = $request->input('fecha_fin');
+    
+            // Consulta base uniendo con la tabla usuarios y filtrando por rol cliente
+            $query = DB::table('resultados_pacientes as r')
+                ->join('usuarios as u', 'r.idUsuario', '=', 'u.idUsuario')
+                ->where('r.estado', 'activo')
+                ->where('u.rol', 'cliente') // Filtrar directamente por el rol en la tabla usuarios
+                ->select(
+                    'r.*',
+                    'u.nombres',
+                    'u.apellidos',
+                    'u.dni'
+                );
+    
+            // Aplicar búsqueda si existe
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('u.dni', 'LIKE', "%{$search}%")
+                      ->orWhere('u.nombres', 'LIKE', "%{$search}%")
+                      ->orWhere('u.apellidos', 'LIKE', "%{$search}%")
+                      ->orWhere('r.idResultados', 'LIKE', "%{$search}%");
+                });
+            }
+    
+            // Aplicar filtros de fecha
+            if ($fechaInicio && $fechaFin) {
+                $query->whereBetween('r.fecha_cita', [$fechaInicio, $fechaFin]);
+            } elseif ($fechaInicio) {
+                $query->where('r.fecha_cita', '>=', $fechaInicio);
+            } elseif ($fechaFin) {
+                $query->where('r.fecha_cita', '<=', $fechaFin);
+            }
+    
+            // Ejecutar consulta
+            $resultados = $query->orderBy('r.fecha_cita', 'desc')->get();
+    
+            // Formatear resultados
+            $resultados->map(function ($resultado) {
+                $resultado->url_descarga = asset('storage/' . $resultado->ruta_archivo);
+                $resultado->observaciones = $resultado->observaciones ?? "No hay observaciones disponibles";
+                $resultado->nombre_completo = trim($resultado->nombres . ' ' . $resultado->apellidos) ?: 'Paciente sin nombre';
+                return $resultado;
+            });
+    
+            return response()->json(['resultados' => $resultados]);
+        } catch (\Exception $e) {
+            Log::error('Error al obtener resultados: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al obtener resultados'], 500);
+        }
+    }
+
+
+    public function eliminarResultado($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Verificar si existe y no está eliminado
+            $resultado = DB::table('resultados_pacientes')
+                ->where('idResultados', $id)
+                ->where('estado', '!=', 'eliminado') // Asegurarse de que no esté ya eliminado
+                ->first();
+
+            if (!$resultado) {
+                throw new \Exception('Resultado no encontrado');
+            }
+
+            // Actualizar estado a eliminado
+            DB::table('resultados_pacientes')
+                ->where('idResultados', $id)
+                ->update([
+                    'estado' => 'eliminado',
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'exito' => true,
+                'mensaje' => 'Resultado marcado como eliminado exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar resultado: ' . $e->getMessage());
+            return response()->json([
+                'exito' => false,
+                'mensaje' => 'Error al marcar el resultado como eliminado'
+            ], 500);
+        }
+    }
+
     
 }

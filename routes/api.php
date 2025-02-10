@@ -70,6 +70,11 @@ use Illuminate\Support\Facades\DB;
           //Rutas para la sidebar del context
           Route::get('/pacientes/search', [AdminController::class, 'buscarPacientes']);
           Route::post('/subir-resultados', [AdminController::class, 'subirResultados']);
+
+          // Rutas para admin
+            Route::get('/admin/resultados', [AdminController::class, 'listarResultadosAdmin']);
+            Route::delete('/admin/resultados/{id}', [AdminController::class, 'eliminarResultado']);
+
     
     });
 
