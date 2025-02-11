@@ -271,4 +271,173 @@ class SuperAdminController extends Controller
         }
     }
 
+
+    //PArA ESPECIALIDADES
+
+    public function obtenerEspecialidades(Request $request)
+    {
+        try {
+            $query = DB::table('especialidades')
+                ->select('idEspecialidad', 'nombre', 'descripcion', 'icono');
+
+            if ($request->has('search')) {
+                $searchTerm = $request->search;
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('nombre', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('descripcion', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            $especialidades = $query->get();
+            
+            return response()->json($especialidades->toArray());
+        } catch (Exception $e) {
+            Log::error('Error al obtener especialidades:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener especialidades',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function actualizarEspecialidad(Request $request, $id)
+    {
+        $messages = [
+            'nombre.required' => 'El nombre es obligatorio.',
+            'descripcion.required' => 'La descripción es obligatoria.',
+            'icono.required' => 'El icono es obligatorio.',
+        ];
+
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'required|string',
+            'icono' => 'required|string',
+        ], $messages);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $especialidad = DB::table('especialidades')->where('idEspecialidad', $id)->first();
+            if (!$especialidad) {
+                return response()->json(['message' => 'Especialidad no encontrada'], 404);
+            }
+
+            DB::table('especialidades')
+                ->where('idEspecialidad', $id)
+                ->update([
+                    'nombre' => $request->nombre,
+                    'descripcion' => $request->descripcion,
+                    'icono' => $request->icono,
+                ]);
+
+            $updatedEspecialidad = DB::table('especialidades')->where('idEspecialidad', $id)->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Especialidad actualizada exitosamente',
+                'especialidad' => $updatedEspecialidad
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error al actualizar especialidad:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar especialidad',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function eliminarEspecialidad($id)
+    {
+        try {
+            $deleted = DB::table('especialidades')->where('idEspecialidad', $id)->delete();
+            
+            if (!$deleted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Especialidad no encontrada'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Especialidad eliminada exitosamente'
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error al eliminar especialidad:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar especialidad',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function registrarEspecialidad(Request $request)
+    {
+        $messages = [
+            'nombre.required' => 'El nombre es obligatorio.',
+            'descripcion.required' => 'La descripción es obligatoria.',
+            'icono.required' => 'El icono es obligatorio.',
+        ];
+
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'required|string',
+            'icono' => 'required|string',
+            'estado'=> 'activo',
+        ], $messages);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $idEspecialidad = DB::table('especialidades')->insertGetId([
+                'nombre' => $request->nombre,
+                'descripcion' => $request->descripcion,
+                'icono' => $request->icono,
+            ]);
+
+            $especialidad = DB::table('especialidades')->where('idEspecialidad', $idEspecialidad)->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Especialidad registrada exitosamente.',
+                'especialidad' => $especialidad
+            ], 201);
+
+        } catch (Exception $e) {
+            Log::error('Error en la consulta de SQL:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error en la base de datos. Verifica los datos enviados.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }

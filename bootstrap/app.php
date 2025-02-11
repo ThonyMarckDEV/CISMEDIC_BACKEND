@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\CheckRoles;
+use App\Http\Middleware\CheckRolesAdminClienteSuperAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'checkRoleMW' =>CheckRole::class,
             //MIDDLEWARE PARA VERIFICAR ROL MULTIPLE
             'checkRolesMW' =>CheckRoles::class,
+             //MIDDLEWARE PARA VERIFICAR ROL MULTIPLE
+             'checkRolesMWACS' =>CheckRolesAdminClienteSuperAdmin::class,
             //MIDDLEWARE PARA AUTH DEL TOKEN
             'auth.jwt' =>\Tymon\JWTAuth\Http\Middleware\Authenticate::class,
             //MIDDLEWARE CORS

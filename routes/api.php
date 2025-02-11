@@ -40,15 +40,11 @@ use Illuminate\Support\Facades\DB;
         Route::get('/listarespecialidadesStaff', [ClienteController::class, 'getEspecialidades']);
         Route::get('/perfildoctor/{idDoctor}', [DoctorController::class, 'obtenerPerfil']);
 
+        Route::get('/especialidadeshome', [DoctorController::class, 'obtenerEspecialidades']);
 
-
-        Route::post('/registrousuarios', [SuperAdminController::class, 'registrarDatosPersonales']);
-        Route::get('/obtenerusuarios', [SuperAdminController::class, 'obtenerUsuarios']);
-        Route::put('/actualizarusuarios/{id}', [SuperAdminController::class, 'actualizarUsuario']);
-        Route::delete('/eliminarusuarios/{id}', [SuperAdminController::class, 'eliminarUsuario']);
-      
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
+
 
     Route::middleware(['auth.jwt', 'checkRolesMW'])->group(function () {
 
@@ -62,10 +58,39 @@ use Illuminate\Support\Facades\DB;
 
     });
 
+
+    //RUTAS  AUTH para  roles admin y  cliente y superadmin
+
+    Route::middleware(['auth.jwt', 'checkRolesMWACS'])->group(function () {
+
+        // Rutas para Agendar Cita
+        Route::get('/especialidades', [ClienteController::class, 'getEspecialidades']);
+        Route::get('/doctores/especialidad/{idEspecialidad}', [ClienteController::class, 'getDoctoresPorEspecialidad']);
+        Route::get('/horarios-disponibles/{idDoctor}/{fecha}', [ClienteController::class, 'getHorariosDisponibles']);
+        Route::get('/doctor-schedule/{doctorId}/week', [ClienteController::class, 'getWeekSchedule']); 
+
+    });
+
+
 //================================================================================================
     //RUTAS PROTEGIDAS A
     // RUTAS PARA SUPERADMINISTRADOR VALIDADA POR MIDDLEWARE AUTH (PARA TOKEN JWT) Y CHECKROLE (PARA VALIDAR ROL DEL TOKEN)
     Route::middleware(['auth.jwt', 'checkRoleMW:superadmin'])->group(function () { 
+
+        //Rutas gestionar usuarios
+        Route::post('/registrousuarios', [SuperAdminController::class, 'registrarDatosPersonales']);
+        Route::get('/obtenerusuarios', [SuperAdminController::class, 'obtenerUsuarios']);
+        Route::put('/actualizarusuarios/{id}', [SuperAdminController::class, 'actualizarUsuario']);
+        Route::delete('/eliminarusuarios/{id}', [SuperAdminController::class, 'eliminarUsuario']);
+
+        //Rutas gestionar especialidades
+        Route::get('/obtenerespecialidades', [SuperAdminController::class, 'obtenerEspecialidades']);
+        // Registrar una nueva especialidad
+        Route::post('/registrarespecialidad', [SuperAdminController::class, 'registrarEspecialidad']);
+        // Actualizar una especialidad existente
+        Route::put('/actualizarespecialidad/{id}', [SuperAdminController::class, 'actualizarEspecialidad']);
+        // Eliminar una especialidad
+        Route::delete('/eliminarespecialidad/{id}', [SuperAdminController::class, 'eliminarEspecialidad']);
 
     });
 
@@ -80,6 +105,7 @@ use Illuminate\Support\Facades\DB;
           // Rutas para admin
             Route::get('/admin/resultados', [AdminController::class, 'listarResultadosAdmin']);
             Route::delete('/admin/resultados/{id}', [AdminController::class, 'eliminarResultado']);
+            
 
     
     });
@@ -92,15 +118,11 @@ use Illuminate\Support\Facades\DB;
         Route::get('/pagos/cantidad/{idCliente}', [ClienteController::class, 'cantidadPagos']);
         Route::get('/citas/cantidad/{idCliente}', [ClienteController::class, 'cantidadCitas']);
 
-       // Rutas para Agendar Cita
-        Route::get('/especialidades', [ClienteController::class, 'getEspecialidades']);
-        Route::get('/doctores/especialidad/{idEspecialidad}', [ClienteController::class, 'getDoctoresPorEspecialidad']);
-        Route::get('/horarios-disponibles/{idDoctor}/{fecha}', [ClienteController::class, 'getHorariosDisponibles']);
+     
         Route::post('/agendar-cita', [ClienteController::class, 'agendarCita']);
         Route::post('/registrar-pago', [ClienteController::class, 'registrarPago']);
 
-        Route::get('/doctor-schedule/{doctorId}/week', [ClienteController::class, 'getWeekSchedule']); 
-
+    
         //Rutas para listar las citas
         Route::get('/citas/{userId}', [ClienteController::class, 'obtenerCitas']);
         Route::put('/cancelar-cita/{idCita}', [ClienteController::class, 'cancelarCitaCliente']);

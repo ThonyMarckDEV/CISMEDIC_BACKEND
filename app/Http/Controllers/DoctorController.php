@@ -28,6 +28,28 @@ class DoctorController extends Controller
 {
 
    
+    public function obtenerEspecialidades(Request $request)
+    {
+        try {
+            // Obtener todas las especialidades desde la base de datos
+            $especialidades = DB::table('especialidades')
+                ->select('idEspecialidad', 'nombre', 'descripcion', 'icono')
+                ->get();
+
+            return response()->json($especialidades);
+        } catch (\Exception $e) {
+            Log::error('Error al obtener especialidades:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener especialidades',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function listDoctors(Request $request)
     {
