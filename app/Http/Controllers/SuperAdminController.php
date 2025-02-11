@@ -141,9 +141,12 @@ class SuperAdminController extends Controller
     public function eliminarUsuario($id)
     {
         try {
-            $deleted = DB::table('usuarios')->where('idUsuario', $id)->delete();
-            
-            if (!$deleted) {
+            // Actualizar el estado a 'inactivo' en lugar de eliminar
+            $updated = DB::table('usuarios')
+                ->where('idUsuario', $id)
+                ->update(['estado' => 'eliminado']);
+
+            if (!$updated) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Usuario no encontrado'
@@ -152,11 +155,11 @@ class SuperAdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Usuario eliminado exitosamente'
+                'message' => 'Usuario desactivado exitosamente'
             ]);
 
         } catch (Exception $e) {
-            Log::error('Error al eliminar usuario:', [
+            Log::error('Error al desactivar usuario:', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -164,11 +167,12 @@ class SuperAdminController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar usuario',
+                'message' => 'Error al desactivar usuario',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
+
 
     public function registrarDatosPersonales(Request $request)
     {
@@ -360,36 +364,39 @@ class SuperAdminController extends Controller
     }
 
     public function eliminarEspecialidad($id)
-    {
-        try {
-            $deleted = DB::table('especialidades')->where('idEspecialidad', $id)->delete();
-            
-            if (!$deleted) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Especialidad no encontrada'
-                ], 404);
-            }
+{
+    try {
+        // Actualizar el estado a 'inactivo' en lugar de eliminar
+        $updated = DB::table('especialidades')
+            ->where('idEspecialidad', $id)
+            ->update(['estado' => 'eliminado']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Especialidad eliminada exitosamente'
-            ]);
-
-        } catch (Exception $e) {
-            Log::error('Error al eliminar especialidad:', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-            
+        if (!$updated) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar especialidad',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'Especialidad no encontrada'
+            ], 404);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Especialidad desactivada exitosamente'
+        ]);
+
+    } catch (Exception $e) {
+        Log::error('Error al desactivar especialidad:', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al desactivar especialidad',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 
     public function registrarEspecialidad(Request $request)
     {
