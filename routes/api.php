@@ -40,6 +40,13 @@ use Illuminate\Support\Facades\DB;
         Route::get('/listarespecialidadesStaff', [ClienteController::class, 'getEspecialidades']);
         Route::get('/perfildoctor/{idDoctor}', [DoctorController::class, 'obtenerPerfil']);
 
+
+
+        Route::post('/registrousuarios', [SuperAdminController::class, 'registrarDatosPersonales']);
+        Route::get('/obtenerusuarios', [SuperAdminController::class, 'obtenerUsuarios']);
+        Route::put('/actualizarusuarios/{id}', [SuperAdminController::class, 'actualizarUsuario']);
+        Route::delete('/eliminarusuarios/{id}', [SuperAdminController::class, 'eliminarUsuario']);
+      
 //================================================================================================
     //RUTAS  AUTH PROTEGIDAS par todos los roles
 
@@ -60,7 +67,6 @@ use Illuminate\Support\Facades\DB;
     // RUTAS PARA SUPERADMINISTRADOR VALIDADA POR MIDDLEWARE AUTH (PARA TOKEN JWT) Y CHECKROLE (PARA VALIDAR ROL DEL TOKEN)
     Route::middleware(['auth.jwt', 'checkRoleMW:superadmin'])->group(function () { 
 
-      
     });
 
 
