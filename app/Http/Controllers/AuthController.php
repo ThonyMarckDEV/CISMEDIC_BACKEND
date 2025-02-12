@@ -86,59 +86,65 @@ class AuthController extends Controller
         ], 200);
     }
     
-
+    
     public function registrarDatosPersonales(Request $request)
     {
-        // Log para verificar los datos recibidos en registerUser
-        Log::info('Datos recibidos en registerUser:', $request->all());
-    
-        $messages = [
-            'nombres.required' => 'El nombre es obligatorio.',
-            'apellidos.required' => 'Los apellidos son obligatorios.',
-            'apellidos.regex' => 'Debe ingresar al menos dos apellidos separados por un espacio.',
-            'dni.required' => 'El DNI es obligatorio.',
-            'dni.size' => 'El DNI debe tener exactamente 8 caracteres.',
-            'dni.unique' => 'El DNI ya está registrado.',
-            'correo.required' => 'El correo es obligatorio.',
-            'correo.email' => 'El correo debe tener un formato válido.',
-            'correo.unique' => 'El correo ya está registrado.',
-            'nacimiento.date' => 'La fecha de nacimiento debe ser una fecha válida.',
-            'nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
-            'password.required' => 'La contraseña es obligatoria.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-            'password.regex' => 'La contraseña debe incluir al menos una mayúscula y un símbolo.',
-            'password.confirmed' => 'Las contraseñas no coinciden.',
-        ];
-    
-        $validator = Validator::make($request->all(), [
-            'nombres' => 'required|string|max:255',
-            'apellidos' => [
-                'required',
-                'regex:/^[a-zA-ZÀ-ÿ]+(\s[a-zA-ZÀ-ÿ]+)+$/'
-            ],
-            'dni' => 'required|string|size:8|unique:usuarios',
-            'correo' => 'required|string|email|max:255|unique:usuarios',
-            'nacimiento' => 'required|date|before:today',
-            'telefono' => 'nullable|string|size:9|regex:/^\d{9}$/',
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'max:255',
-                'regex:/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>_])[A-Za-z\d!@#$%^&*(),.?":{}|<>_]{8,}$/',
-            ]
-        ], $messages);
-    
-        if ($validator->fails()) {
-            Log::error('Errores de validación en registerUser:', $validator->errors()->toArray());
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        DB::beginTransaction(); // Inicia una transacción
     
         try {
+            // Log para verificar los datos recibidos
+            Log::info('Datos recibidos en registerUser:', $request->all());
+    
+            // Mensajes de validación personalizados
+            $messages = [
+                'nombres.required' => 'El nombre es obligatorio.',
+                'apellidos.required' => 'Los apellidos son obligatorios.',
+                'apellidos.regex' => 'Debe ingresar al menos dos apellidos separados por un espacio.',
+                'dni.required' => 'El DNI es obligatorio.',
+                'dni.size' => 'El DNI debe tener exactamente 8 caracteres.',
+                'dni.unique' => 'El DNI ya está registrado.',
+                'correo.required' => 'El correo es obligatorio.',
+                'correo.email' => 'El correo debe tener un formato válido.',
+                'correo.unique' => 'El correo ya está registrado.',
+                'nacimiento.date' => 'La fecha de nacimiento debe ser una fecha válida.',
+                'nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+                'password.required' => 'La contraseña es obligatoria.',
+                'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+                'password.regex' => 'La contraseña debe incluir al menos una mayúscula y un símbolo.',
+                'password.confirmed' => 'Las contraseñas no coinciden.',
+            ];
+    
+            // Reglas de validación
+            $validator = Validator::make($request->all(), [
+                'nombres' => 'required|string|max:255',
+                'apellidos' => [
+                    'required',
+                    'regex:/^[a-zA-ZÀ-ÿ]+(\s[a-zA-ZÀ-ÿ]+)+$/'
+                ],
+                'dni' => 'required|string|size:8|unique:usuarios',
+                'correo' => 'required|string|email|max:255|unique:usuarios',
+                'nacimiento' => 'required|date|before:today',
+                'telefono' => 'nullable|string|size:9|regex:/^\d{9}$/',
+                'password' => [
+                    'required',
+                    'string',
+                    'min:8',
+                    'max:255',
+                    'regex:/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>_])[A-Za-z\d!@#$%^&*(),.?":{}|<>_]{8,}$/',
+                    'confirmed'
+                ]
+            ], $messages);
+    
+            // Si la validación falla, retorna los errores
+            if ($validator->fails()) {
+                Log::error('Errores de validación en registerUser:', $validator->errors()->toArray());
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+    
             // Generar el username a partir de nombres y apellidos
             $nombres = explode(' ', $request->nombres);
             $apellidos = explode(' ', $request->apellidos);
-            
+    
             // Validar que haya suficientes elementos para el username
             if (count($apellidos) < 2) {
                 return response()->json(['errors' => ['apellidos' => 'Debe ingresar al menos dos apellidos.']], 422);
@@ -153,17 +159,17 @@ class AuthController extends Controller
             $user = Usuario::create([
                 'username' => $username, // Username generado
                 'rol' => 'cliente', // Rol por defecto
-                'experiencia'=>null,
+                'experiencia' => null,
                 'nombres' => $request->nombres,
                 'apellidos' => $request->apellidos,
                 'dni' => $request->dni,
                 'correo' => $request->correo,
                 'edad' => $edad, // Edad calculada
                 'nacimiento' => $request->nacimiento,
-                'sexo'=>null,
+                'sexo' => null,
                 'telefono' => $request->telefono ?? null,
                 'password' => bcrypt($request->password),
-                'estado'    => 'activo',
+                'estado' => 'activo',
                 'status' => 'loggedOff', // Status por defecto
                 'verification_token' => Str::random(60), // Genera un token único
             ]);
@@ -171,11 +177,17 @@ class AuthController extends Controller
             // Log para confirmar que el usuario se creó correctamente
             Log::info('Usuario creado exitosamente:', $user->toArray());
     
+
             // URL para verificar el correo
-            $verificationUrl = "https://cismedic.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
+            //$verificationUrl = "https://cismedic.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
+
+            // URL para verificar el correo
+            $verificationUrl = "https://thonymarckdev.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
     
             // Enviar el correo
             Mail::to($user->correo)->send(new VerificarCorreo($user, $verificationUrl));
+    
+            DB::commit(); // Confirma la transacción si todo está bien
     
             return response()->json([
                 'success' => true,
@@ -183,6 +195,8 @@ class AuthController extends Controller
             ], 201);
     
         } catch (QueryException $e) {
+            DB::rollBack(); // Revierte la transacción en caso de error
+    
             Log::error('Error en la consulta de SQL en registerUser:', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -196,6 +210,8 @@ class AuthController extends Controller
             ], 500);
     
         } catch (Exception $e) {
+            DB::rollBack(); // Revierte la transacción en caso de error
+    
             Log::error('Error inesperado en registerUser:', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -209,7 +225,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * @OA\Post(
@@ -270,43 +285,17 @@ class AuthController extends Controller
                 ], 400);
             }
     
-            // Actualizar el estado de verificación
+
             $usuario->emailVerified = true;
-           // $usuario->verification_token = null; // Eliminar el token después de usarlo
+            $usuario->verification_token = null; // Eliminar el token después de usarlo
             $usuario->save();
 
             // Enviar notificación de cuenta verificada
             Mail::to($usuario->correo)->send(new CuentaVerificada($usuario));
     
-            // Comprobamos si hay un token en la solicitud para determinar si está logueado
-            // Si no hay token, no se genera un nuevo JWT
-            if (!$request->header('Authorization')) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Correo verificado exitosamente.',
-                    'token' => null,  // No generar token si no está autenticado
-                ], 200);
-            }
-    
-            $payload = [
-                'idUsuario' => $usuario->idUsuario,
-                'dni' => $usuario->dni,
-                'nombres' => $usuario->nombres,
-                'username' => $usuario->username,
-                'correo' => $usuario->correo,
-                'estado' => $usuario->status,
-                'rol' => $usuario->rol,
-                'perfil' => $usuario->perfil,
-                'emailVerified' => $usuario->emailVerified,
-            ];
-    
-            // Generar el token con los datos del usuario
-            $token = JWTAuth::fromUser($usuario);
-    
             return response()->json([
                 'success' => true,
                 'message' => 'Correo verificado exitosamente.',
-                'token' => $token,
             ], 200);
     
         } catch (Exception $e) {
