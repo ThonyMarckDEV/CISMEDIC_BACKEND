@@ -106,52 +106,52 @@ class SuperAdminController extends Controller
                 'idUsuario' => 'required|numeric',
                 'idEspecialidad' => 'required|numeric'
             ]);
-
+    
             // Verificar si el usuario existe y es un doctor
             $userExists = DB::table('usuarios')
                 ->where('idUsuario', $request->idUsuario)
                 ->where('rol', 'doctor')
                 ->exists();
-
+    
             if (!$userExists) {
                 return response()->json([
                     'error' => 'El usuario no existe o no es un doctor'
                 ], 404);
             }
-
+    
             // Verificar si la especialidad existe
             $specialtyExists = DB::table('especialidades')
                 ->where('idEspecialidad', $request->idEspecialidad)
                 ->exists();
-
+    
             if (!$specialtyExists) {
                 return response()->json([
                     'error' => 'La especialidad no existe'
                 ], 404);
             }
-
-            // Verificar si ya existe la asignación
-            $existingAssignment = DB::table('especialidades_usuarios')
+    
+            // Verificar si el doctor ya tiene una especialidad asignada
+            $existingSpecialty = DB::table('especialidades_usuarios')
                 ->where('idUsuario', $request->idUsuario)
-                ->where('idEspecialidad', $request->idEspecialidad)
-                ->exists();
-
-            if ($existingAssignment) {
-                return response()->json([
-                    'error' => 'El doctor ya tiene asignada esta especialidad'
-                ], 409);
+                ->first();
+    
+            if ($existingSpecialty) {
+                // Si ya tiene una especialidad, eliminar la asignación existente
+                DB::table('especialidades_usuarios')
+                    ->where('idUsuario', $request->idUsuario)
+                    ->delete();
             }
-
+    
             // Insertar la nueva asignación
             DB::table('especialidades_usuarios')->insert([
                 'idUsuario' => $request->idUsuario,
                 'idEspecialidad' => $request->idEspecialidad,
             ]);
-
+    
             return response()->json([
                 'message' => 'Especialidad asignada correctamente'
             ], 201);
-
+    
         } catch (Exception $e) {
             return response()->json([
                 'error' => 'Error al asignar la especialidad',
@@ -159,7 +159,7 @@ class SuperAdminController extends Controller
             ], 500);
         }
     }
-
+    
     public function obtenerUsuarios(Request $request)
     {
         try {
