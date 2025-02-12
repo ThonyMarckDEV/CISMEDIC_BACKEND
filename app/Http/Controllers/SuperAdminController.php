@@ -428,16 +428,18 @@ class SuperAdminController extends Controller
     {
         try {
             $query = DB::table('especialidades')
-                ->select('idEspecialidad', 'nombre', 'descripcion', 'icono');
-
+                ->select('idEspecialidad', 'nombre', 'descripcion', 'icono')
+                ->where('estado', 'activo'); // Filtro para solo especialidades activas
+    
+            // Búsqueda por nombre o descripción
             if ($request->has('search')) {
                 $searchTerm = $request->search;
                 $query->where(function($q) use ($searchTerm) {
                     $q->where('nombre', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('descripcion', 'LIKE', "%{$searchTerm}%");
+                      ->orWhere('descripcion', 'LIKE', "%{$searchTerm}%");
                 });
             }
-
+    
             $especialidades = $query->get();
             
             return response()->json($especialidades->toArray());

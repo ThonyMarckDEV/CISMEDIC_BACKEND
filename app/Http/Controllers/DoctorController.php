@@ -31,9 +31,10 @@ class DoctorController extends Controller
     public function obtenerEspecialidades(Request $request)
     {
         try {
-            // Obtener todas las especialidades desde la base de datos
+            // Obtener todas las especialidades activas desde la base de datos
             $especialidades = DB::table('especialidades')
                 ->select('idEspecialidad', 'nombre', 'descripcion', 'icono')
+                ->where('estado', 'activo') // Filtro para solo especialidades activas
                 ->get();
 
             return response()->json($especialidades);
