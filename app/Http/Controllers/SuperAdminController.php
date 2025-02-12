@@ -14,6 +14,152 @@ use Illuminate\Support\Facades\Validator;
 
 class SuperAdminController extends Controller
 {
+
+    
+    public function listarDoctores(Request $request)
+    {
+        $search = $request->input('search');
+        $specialty = $request->input('specialty');
+
+        $query = DB::table('usuarios')
+            ->select(
+                'usuarios.idUsuario',
+                'usuarios.nombres',
+                'usuarios.apellidos'
+            )
+            ->where('usuarios.rol', 'doctor');
+
+        // Add search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('usuarios.nombres', 'LIKE', "%$search%")
+                    ->orWhere('usuarios.apellidos', 'LIKE', "%$search%")
+                    ->orWhere(DB::raw("CONCAT(usuarios.nombres, ' ', usuarios.apellidos)"), 'LIKE', "%$search%");
+            });
+        }
+
+        $doctors = $query->get();
+
+        // Get specialties for each doctor
+        foreach ($doctors as $doctor) {
+            $doctor->especialidades = DB::table('especialidades_usuarios')
+                ->join('especialidades', 'especialidades.idEspecialidad', '=', 'especialidades_usuarios.idEspecialidad')
+                ->where('especialidades_usuarios.idUsuario', $doctor->idUsuario)
+                ->select('especialidades.idEspecialidad', 'especialidades.nombre')
+                ->get();
+        }
+
+        // Filter by specialty if specified
+        if ($specialty) {
+            $doctors = collect($doctors)->filter(function ($doctor) use ($specialty) {
+                return $doctor->especialidades->contains('idEspecialidad', $specialty);
+            })->values();
+        }
+
+        return response()->json($doctors);
+    }
+
+    public function removeEspecialidad(Request $request)
+    {
+        try {
+            // Validate input
+            $request->validate([
+                'idUsuario' => 'required|numeric',
+                'idEspecialidad' => 'required|numeric'
+            ]);
+
+            // Check if the assignment exists
+            $exists = DB::table('especialidades_usuarios')
+                ->where('idUsuario', $request->idUsuario)
+                ->where('idEspecialidad', $request->idEspecialidad)
+                ->exists();
+
+            if (!$exists) {
+                return response()->json([
+                    'error' => 'La asignación no existe'
+                ], 404);
+            }
+
+            // Remove the assignment
+            DB::table('especialidades_usuarios')
+                ->where('idUsuario', $request->idUsuario)
+                ->where('idEspecialidad', $request->idEspecialidad)
+                ->delete();
+
+            return response()->json([
+                'message' => 'Especialidad removida correctamente'
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Error al remover la especialidad',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function asignarEspecialidad(Request $request)
+    {
+        try {
+            // Validar los datos de entrada
+            $request->validate([
+                'idUsuario' => 'required|numeric',
+                'idEspecialidad' => 'required|numeric'
+            ]);
+
+            // Verificar si el usuario existe y es un doctor
+            $userExists = DB::table('usuarios')
+                ->where('idUsuario', $request->idUsuario)
+                ->where('rol', 'doctor')
+                ->exists();
+
+            if (!$userExists) {
+                return response()->json([
+                    'error' => 'El usuario no existe o no es un doctor'
+                ], 404);
+            }
+
+            // Verificar si la especialidad existe
+            $specialtyExists = DB::table('especialidades')
+                ->where('idEspecialidad', $request->idEspecialidad)
+                ->exists();
+
+            if (!$specialtyExists) {
+                return response()->json([
+                    'error' => 'La especialidad no existe'
+                ], 404);
+            }
+
+            // Verificar si ya existe la asignación
+            $existingAssignment = DB::table('especialidades_usuarios')
+                ->where('idUsuario', $request->idUsuario)
+                ->where('idEspecialidad', $request->idEspecialidad)
+                ->exists();
+
+            if ($existingAssignment) {
+                return response()->json([
+                    'error' => 'El doctor ya tiene asignada esta especialidad'
+                ], 409);
+            }
+
+            // Insertar la nueva asignación
+            DB::table('especialidades_usuarios')->insert([
+                'idUsuario' => $request->idUsuario,
+                'idEspecialidad' => $request->idEspecialidad,
+            ]);
+
+            return response()->json([
+                'message' => 'Especialidad asignada correctamente'
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Error al asignar la especialidad',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function obtenerUsuarios(Request $request)
     {
         try {

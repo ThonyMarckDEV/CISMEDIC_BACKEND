@@ -92,6 +92,11 @@ use Illuminate\Support\Facades\DB;
         // Eliminar una especialidad
         Route::delete('/eliminarespecialidad/{id}', [SuperAdminController::class, 'eliminarEspecialidad']);
 
+
+
+        Route::get('/listarDoctores', [SuperAdminController::class, 'listarDoctores']);
+        Route::post('/asignarespecialidad', [SuperAdminController::class, 'asignarEspecialidad']);
+        Route::delete('/removerespecialidad', [SuperAdminController::class, 'removeEspecialidad']);
     });
 
 
@@ -106,7 +111,6 @@ use Illuminate\Support\Facades\DB;
             Route::get('/admin/resultados', [AdminController::class, 'listarResultadosAdmin']);
             Route::delete('/admin/resultados/{id}', [AdminController::class, 'eliminarResultado']);
             
-
     
     });
 
