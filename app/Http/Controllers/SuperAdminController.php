@@ -557,8 +557,7 @@ class SuperAdminController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
             'descripcion' => 'required|string',
-            'icono' => 'required|string',
-            'estado'=> 'activo',
+            'icono' => 'required|string'
         ], $messages);
 
         if ($validator->fails()) {
@@ -570,6 +569,7 @@ class SuperAdminController extends Controller
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
                 'icono' => $request->icono,
+                'estado'=> 'activo',
             ]);
 
             $especialidad = DB::table('especialidades')->where('idEspecialidad', $idEspecialidad)->first();
