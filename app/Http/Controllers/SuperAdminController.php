@@ -165,9 +165,10 @@ class SuperAdminController extends Controller
         try {
             $query = DB::table('usuarios')
                 ->select('idUsuario', 'username', 'nombres', 'apellidos', 'dni', 'correo', 'rol', 'telefono')
-                ->where('rol', '!=', 'superadmin'); // Exclude users with the role 'superadmin'
+                ->where('rol', '!=', 'superadmin') // Excluir usuarios con el rol 'superadmin'
+                ->where('estado', 'activo'); // Filtro para solo usuarios activos
     
-            // If search term is provided
+            // Si se proporciona un término de búsqueda
             if ($request->has('search')) {
                 $searchTerm = $request->search;
                 $query->where(function($q) use ($searchTerm) {
@@ -194,6 +195,7 @@ class SuperAdminController extends Controller
             ], 500);
         }
     }
+    
 
     public function actualizarUsuario(Request $request, $id)
     {
