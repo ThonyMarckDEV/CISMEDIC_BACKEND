@@ -26,6 +26,7 @@ use App\Mail\VerificarCorreo;
 use App\Mail\CuentaVerificada;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
 * @OA\Info(
