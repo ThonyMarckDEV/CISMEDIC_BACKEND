@@ -117,31 +117,46 @@ class AuthController extends Controller
         try {
             $request->validate([
                 'token_veririficador' => 'required|string',
-                'password' => 'required|string|min:8|confirmed',
+                'password' => [
+                    'required',
+                    'string',
+                    'min:8',
+                    'confirmed',
+                    'regex:/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).*$/'
+                ],
+            ], [
+                'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+                'password.regex' => 'La contraseña debe contener al menos una mayúscula y un símbolo.',
+                'password.confirmed' => 'Las contraseñas no coinciden.',
             ]);
-
+    
             $usuario = Usuario::where('verification_token', $request->token_veririficador)->first();
-
+    
             if (!$usuario) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Token no válido o expirado.',
                 ], 400);
             }
-
-            // Actualizar contraseña y eliminar token
+    
             $usuario->password = Hash::make($request->password);
             $usuario->verification_token = null;
             $usuario->save();
-
+    
             return response()->json([
                 'success' => true,
                 'message' => 'Contraseña actualizada correctamente.',
             ], 200);
-
+    
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             Log::error('Error al restablecer contraseña:', ['error' => $e->getMessage()]);
-
+    
             return response()->json([
                 'success' => false,
                 'message' => 'Error al restablecer la contraseña.',
