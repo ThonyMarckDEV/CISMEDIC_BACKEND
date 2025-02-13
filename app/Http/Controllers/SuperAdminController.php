@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -252,24 +253,30 @@ class SuperAdminController extends Controller
                 $username = strtoupper(substr($nombres[0], 0, 2) . substr($apellidos[0], 0, 3) . substr($apellidos[1], 0, 3));
             }
 
+            $updateData = [
+                'username' => $username,
+                'nombres' => $request->nombres,
+                'apellidos' => $request->apellidos,
+                'dni' => $request->dni,
+                'correo' => $request->correo,
+                'telefono' => $request->telefono,
+                'rol' => $request->rol,
+            ];
+
+            // Si se proporcionó una nueva contraseña, agregarla a los datos de actualización
+            if ($request->has('password') && !empty($request->password)) {
+                $updateData['password'] = Hash::make($request->password);
+            }
+
             $updated = DB::table('usuarios')
                 ->where('idUsuario', $id)
-                ->update([
-                    'username' => $username,
-                    'nombres' => $request->nombres,
-                    'apellidos' => $request->apellidos,
-                    'dni' => $request->dni,
-                    'correo' => $request->correo,
-                    'telefono' => $request->telefono,
-                    'rol' => $request->rol,
-                ]);
+                ->update($updateData);
 
-            $updatedUser = DB::table('usuarios')->where('idUsuario', $id)->first();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Usuario actualizado exitosamente',
-                'usuario' => $updatedUser
+                'usuario' => $updated
             ]);
 
         } catch (Exception $e) {
