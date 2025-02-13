@@ -107,7 +107,7 @@
         
         <p>Para crear una nueva contraseña, haz clic en el siguiente enlace:</p>
         
-        <a href="http://localhost:3000/restablecer-password?token_veririficador={{ $token }}" class="button">
+        <a href="https://cismedic.vercel.app/restablecer-password?token_veririficador={{ $token }}" class="button">
             Restablecer Contraseña
         </a>
         
