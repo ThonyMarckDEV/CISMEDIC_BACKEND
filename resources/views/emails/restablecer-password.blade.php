@@ -101,7 +101,7 @@
 <body>
     <div class="container">
         <div class="logo">CISMEDIC</div>
-        <h1>¡Hola, {{ $usuario->nombre }}!</h1>
+        <h1>¡Hola, {{ $usuario->nombres }}!</h1>
         
         <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en Cismedic.</p>
         
