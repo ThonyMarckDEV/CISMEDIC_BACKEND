@@ -32,7 +32,7 @@
         h1 {
             font-size: 24px;
             font-weight: 300;
-            color: #007BFF; /* Azul médico */
+            color: #15803d; /* green-700 */
             margin: 0 0 20px 0;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -52,7 +52,7 @@
         /* Buttons and Links */
         .button, a {
             display: inline-block;
-            background-color: #007BFF; /* Azul médico */
+            background-color: #15803d; /* green-700 */
             color: #ffffff !important;
             padding: 12px 30px;
             text-decoration: none;
@@ -65,12 +65,12 @@
             transition: all 0.3s ease;
         }
         .button:hover, a:hover {
-            background-color: #0056b3; /* Azul más oscuro */
+            background-color: #166534; /* green-800 for darker hover state */
             transform: translateY(-1px);
         }
         /* Utility Classes */
         .highlight {
-            color: #007BFF;
+            color: #15803d; /* green-700 */
             font-weight: 500;
         }
         .footer {
@@ -87,7 +87,7 @@
             margin-bottom: 40px;
             font-size: 28px;
             font-weight: 700;
-            color: #007BFF; /* Azul médico */
+            color: #15803d; /* green-700 */
             letter-spacing: 2px;
         }
         /* Responsive Design */
