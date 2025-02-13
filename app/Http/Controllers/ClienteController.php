@@ -852,7 +852,7 @@ class ClienteController extends Controller
             'idUsuario' => 'required|integer',
             'nombre' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
-            'dni' => 'required|string|max:20',
+            'dni' => 'required|string|max:8',
             'edad' => 'required|integer',
             'sexo' => 'required|in:Masculino,Femenino,Otro',
         ]);
