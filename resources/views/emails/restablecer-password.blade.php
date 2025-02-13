@@ -1,4 +1,3 @@
-// En resources/views/emails/restablecer-password.blade.php
 <!DOCTYPE html>
 <html>
 <head>
