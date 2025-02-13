@@ -28,6 +28,13 @@ use Illuminate\Support\Facades\DB;
 
         // Ruta para verificar el token de correo
         Route::post('verificar-token', [AuthController::class, 'verificarCorreo']);
+
+        // Ruta para enviar correo de verificación
+        Route::post('/solicitar-restablecer-password', [AuthController::class, 'solicitarRestablecerPassword']);
+        Route::post('/verificar-token-password', [AuthController::class, 'verificarTokenPassword']);
+        Route::post('/restablecer-password', [AuthController::class, 'restablecerPassword']);
+
+
     
         Route::post('/webhook/mercadopago', [PaymentController::class, 'recibirPago']);
 

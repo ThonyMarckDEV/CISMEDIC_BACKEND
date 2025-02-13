@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 
+use App\Mail\RestablecerPassword;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ use App\Models\Log as LogUser;
 use App\Mail\VerificarCorreo;
 use App\Mail\CuentaVerificada;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 /**
 * @OA\Info(
@@ -36,6 +38,116 @@ use Carbon\Carbon;
 */
 class AuthController extends Controller
 {
+
+    public function solicitarRestablecerPassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'correo' => 'required|email',
+            ]);
+
+            $usuario = Usuario::where('correo', $request->correo)->first();
+
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No encontramos una cuenta con ese correo electrónico.',
+                ], 404);
+            }
+
+            // Generar token único
+            $token = Str::random(60);
+            $usuario->verification_token = $token;
+            $usuario->save();
+
+            // Enviar correo con el enlace
+            Mail::to($usuario->correo)->send(new RestablecerPassword($usuario, $token));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Se ha enviado un enlace a tu correo electrónico.',
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Error en solicitud de restablecimiento de contraseña:', [
+                'error' => $e->getMessage(),
+                'correo' => $request->correo
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la solicitud.',
+            ], 500);
+        }
+    }
+
+    public function verificarTokenPassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'token_veririficador' => 'required|string',
+            ]);
+
+            $usuario = Usuario::where('verification_token', $request->token_veririficador)->first();
+
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token no válido o expirado.',
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token válido.',
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Error verificando token de restablecimiento:', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al verificar el token.',
+            ], 500);
+        }
+    }
+
+    public function restablecerPassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'token_veririficador' => 'required|string',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
+
+            $usuario = Usuario::where('verification_token', $request->token_veririficador)->first();
+
+            if (!$usuario) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token no válido o expirado.',
+                ], 400);
+            }
+
+            // Actualizar contraseña y eliminar token
+            $usuario->password = Hash::make($request->password);
+            $usuario->verification_token = null;
+            $usuario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contraseña actualizada correctamente.',
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Error al restablecer contraseña:', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al restablecer la contraseña.',
+            ], 500);
+        }
+    }
 
     public function verificarDni(Request $request)
     {
