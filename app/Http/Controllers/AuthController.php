@@ -307,10 +307,10 @@ class AuthController extends Controller
     
 
             // URL para verificar el correo
-            //$verificationUrl = "https://cismedic.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
+            $verificationUrl = "https://cismedic.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
 
             // URL para verificar el correo
-            $verificationUrl = "https://thonymarckdev.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
+            //$verificationUrl = "https://thonymarckdev.vercel.app/verificar-correo-token?token_veririficador={$user->verification_token}";
     
             // Enviar el correo
             Mail::to($user->correo)->send(new VerificarCorreo($user, $verificationUrl));
