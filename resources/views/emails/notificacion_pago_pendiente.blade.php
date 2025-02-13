@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pago Pendiente - Cismedic</title>
     <style>
-        /* Estilos CSS (igual que en tu referencia) */
+        /* Estilos CSS */
         * {
             margin: 0;
             padding: 0;
@@ -30,7 +30,7 @@
         h1 {
             font-size: 24px;
             font-weight: 300;
-            color: #007BFF;
+            color: #2E7D32; /* Verde médico */
             margin: 0 0 20px 0;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -49,7 +49,7 @@
         }
         .button, a {
             display: inline-block;
-            background-color: #007BFF;
+            background-color: #2E7D32; /* Verde médico */
             color: #ffffff !important;
             padding: 12px 30px;
             text-decoration: none;
@@ -62,7 +62,7 @@
             transition: all 0.3s ease;
         }
         .button:hover, a:hover {
-            background-color: #0056b3;
+            background-color: #1B5E20; /* Verde más oscuro */
             transform: translateY(-1px);
         }
         .footer {
@@ -78,7 +78,7 @@
             margin-bottom: 40px;
             font-size: 28px;
             font-weight: 700;
-            color: #007BFF;
+            color: #2E7D32; /* Verde médico */
             letter-spacing: 2px;
         }
         @media screen and (max-width: 600px) {
@@ -101,7 +101,7 @@
         <h3>Detalles del Pago</h3>
         <p><strong>Monto a pagar:</strong> S/.{{ number_format($pago->costo, 2) }}</p>
         <p>Por favor, realiza el pago para completar el registro de tu cita.</p>
-        <p>OJO: Si no realize el pago los 10 minutos posteriores a su generacion , su cita se cancelara automaticamente.</p>
+        <p>OJO: Si no realiza el pago en los 10 minutos posteriores a su generación, su cita se cancelará automáticamente.</p>
         <p class="footer">Saludos,<br>El equipo de CISMEDIC</p>
     </div>
 </body>

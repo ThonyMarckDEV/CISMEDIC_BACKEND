@@ -22,7 +22,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #007BFF;
+            color: #2E7D32;
             text-align: center;
             font-size: 24px;
             margin-bottom: 20px;
@@ -41,7 +41,7 @@
         .button {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #007BFF;
+            background-color: #2E7D32;
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 5px;
@@ -49,7 +49,7 @@
             margin-top: 20px;
         }
         .button:hover {
-            background-color: #0056b3;
+            background-color: #2E7D32;
         }
     </style>
 </head>

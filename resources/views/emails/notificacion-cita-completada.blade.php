@@ -21,7 +21,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #007BFF;
+            color: #2E7D32; /* Verde médico */
             text-align: center;
             font-size: 24px;
             margin-bottom: 20px;

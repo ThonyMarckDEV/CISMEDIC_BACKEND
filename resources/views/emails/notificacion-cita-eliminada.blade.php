@@ -32,7 +32,7 @@
         h1 {
             font-size: 24px;
             font-weight: 300;
-            color: #007BFF; /* Azul médico */
+            color: #2E7D32; /* Azul médico */
             margin: 0 0 20px 0;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -52,7 +52,7 @@
         /* Buttons and Links */
         .button, a {
             display: inline-block;
-            background-color: #007BFF; /* Azul médico */
+            background-color: #2E7D32; /* Azul médico */
             color: #ffffff !important;
             padding: 12px 30px;
             text-decoration: none;
@@ -65,12 +65,12 @@
             transition: all 0.3s ease;
         }
         .button:hover, a:hover {
-            background-color: #0056b3; /* Azul más oscuro */
+            background-color: #2E7D32; /* Azul más oscuro */
             transform: translateY(-1px);
         }
         /* Utility Classes */
         .highlight {
-            color: #007BFF;
+            color: #2E7D32;
             font-weight: 500;
         }
         .footer {
@@ -87,7 +87,7 @@
             margin-bottom: 40px;
             font-size: 28px;
             font-weight: 700;
-            color: #007BFF; /* Azul médico */
+            color: #2E7D32; /* Azul médico */
             letter-spacing: 2px;
         }
         /* Responsive Design */
