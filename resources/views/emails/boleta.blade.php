@@ -25,7 +25,7 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #1a5f7a;
+            border-bottom: 2px solid #15803d;
             padding-bottom: 20px;
         }
 
@@ -36,7 +36,7 @@
         }
 
         h1 {
-            color: #1a5f7a;
+            color: #15803d;
             font-size: 24px;
             margin: 0;
             font-weight: 600;
@@ -47,7 +47,7 @@
         }
 
         .details-title {
-            color: #1a5f7a;
+            color: #15803d;
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 10px;
@@ -57,7 +57,7 @@
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            border-left: 4px solid #1a5f7a;
+            border-left: 4px solid #15803d;
         }
 
         ul {
@@ -84,7 +84,7 @@
         .total {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 2px solid #1a5f7a;
+            border-top: 2px solid #15803d;
             text-align: right;
             font-size: 18px;
             font-weight: 600;
