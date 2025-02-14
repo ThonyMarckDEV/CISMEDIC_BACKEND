@@ -410,53 +410,112 @@ class PaymentController extends Controller
         $pdf->Output('F', $pdfPath);
     }
 
+    // public function descargarBoleta($idCita)
+    // {
+    //     try {
+    //         // Usar la ruta que sabemos que funciona
+    //         $path = public_path("storage/comprobantesMedicos/Boletas/citas/{$idCita}");
+            
+    //         // Buscar archivos PDF en el directorio
+    //         $pdfs = glob($path . "/*.pdf");
+            
+    //         // Log para debug
+    //         Log::info("Buscando PDFs en: " . $path);
+            
+    //         if (empty($pdfs)) {
+    //             Log::error("No se encontraron PDFs en el directorio");
+    //             return response()->json([
+    //                 'error' => "No se encontró el comprobante para la cita #{$idCita}"
+    //             ], 404);
+    //         }
+            
+    //         // Obtener el archivo más reciente
+    //         $archivo = $pdfs[0];
+    //         Log::info("Archivo encontrado: " . $archivo);
+            
+    //         // Verificar que el archivo es legible
+    //         if (!is_readable($archivo)) {
+    //             Log::error("Archivo no legible: " . $archivo);
+    //             return response()->json([
+    //                 'error' => 'El comprobante existe pero no se puede acceder'
+    //             ], 403);
+    //         }
+    
+    //         // Devolver el archivo
+    //         return response()->file($archivo, [
+    //             'Content-Type' => 'application/pdf',
+    //             'Content-Disposition' => 'attachment; filename="' . basename($archivo) . '"',
+    //             'Cache-Control' => 'no-cache'
+    //         ]);
+    
+    //     } catch (\Exception $e) {
+    //         Log::error("Error al descargar boleta para cita #{$idCita}: " . $e->getMessage());
+            
+    //         return response()->json([
+    //             'error' => 'Error al procesar la descarga del comprobante',
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function descargarBoleta($idCita)
-    {
-        try {
-            // Usar la ruta que sabemos que funciona
-            $path = public_path("storage/comprobantesMedicos/Boletas/citas/{$idCita}");
-            
-            // Buscar archivos PDF en el directorio
-            $pdfs = glob($path . "/*.pdf");
-            
-            // Log para debug
-            Log::info("Buscando PDFs en: " . $path);
-            
-            if (empty($pdfs)) {
-                Log::error("No se encontraron PDFs en el directorio");
-                return response()->json([
-                    'error' => "No se encontró el comprobante para la cita #{$idCita}"
-                ], 404);
-            }
-            
-            // Obtener el archivo más reciente
-            $archivo = $pdfs[0];
-            Log::info("Archivo encontrado: " . $archivo);
-            
-            // Verificar que el archivo es legible
-            if (!is_readable($archivo)) {
-                Log::error("Archivo no legible: " . $archivo);
-                return response()->json([
-                    'error' => 'El comprobante existe pero no se puede acceder'
-                ], 403);
-            }
-    
-            // Devolver el archivo
-            return response()->file($archivo, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . basename($archivo) . '"',
-                'Cache-Control' => 'no-cache'
-            ]);
-    
-        } catch (\Exception $e) {
-            Log::error("Error al descargar boleta para cita #{$idCita}: " . $e->getMessage());
-            
+{
+    try {
+        // Buscar el pago correspondiente a la cita
+        $pago = DB::table('pagos')->where('idCita', $idCita)->first();
+
+        if (!$pago) {
+            Log::error("No se encontró el pago para la cita #{$idCita}");
             return response()->json([
-                'error' => 'Error al procesar la descarga del comprobante',
-                'message' => $e->getMessage()
-            ], 500);
+                'error' => "No se encontró el pago para la cita #{$idCita}"
+            ], 404);
         }
+
+        // Determinar la ruta según el tipo de comprobante
+        $tipoComprobante = $pago->tipo_comprobante;
+        $path = public_path("storage/comprobantesMedicos/" . ($tipoComprobante === 'boleta' ? 'Boletas' : 'Facturas') . "/citas/{$idCita}");
+
+        // Buscar archivos PDF en el directorio
+        $pdfs = glob($path . "/*.pdf");
+
+        // Log para debug
+        Log::info("Buscando PDFs en: " . $path);
+
+        if (empty($pdfs)) {
+            Log::error("No se encontraron PDFs en el directorio");
+            return response()->json([
+                'error' => "No se encontró el comprobante para la cita #{$idCita}"
+            ], 404);
+        }
+
+        // Obtener el archivo más reciente
+        $archivo = $pdfs[0];
+        Log::info("Archivo encontrado: " . $archivo);
+
+        // Verificar que el archivo es legible
+        if (!is_readable($archivo)) {
+            Log::error("Archivo no legible: " . $archivo);
+            return response()->json([
+                'error' => 'El comprobante existe pero no se puede acceder'
+            ], 403);
+        }
+
+        // Devolver el archivo
+        return response()->file($archivo, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . basename($archivo) . '"',
+            'Cache-Control' => 'no-cache'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error("Error al descargar boleta para cita #{$idCita}: " . $e->getMessage());
+
+        return response()->json([
+            'error' => 'Error al procesar la descarga del comprobante',
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
 }
 
 
