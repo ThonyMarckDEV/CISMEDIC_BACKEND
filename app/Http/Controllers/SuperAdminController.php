@@ -17,20 +17,65 @@ class SuperAdminController extends Controller
 {
 
     
+    // public function listarDoctores(Request $request)
+    // {
+    //     $search = $request->input('search');
+    //     $specialty = $request->input('specialty');
+
+    //     $query = DB::table('usuarios')
+    //         ->select(
+    //             'usuarios.idUsuario',
+    //             'usuarios.nombres',
+    //             'usuarios.apellidos'
+    //         )
+    //         ->where('usuarios.rol', 'doctor');
+
+    //     // Add search filter
+    //     if ($search) {
+    //         $query->where(function ($q) use ($search) {
+    //             $q->where('usuarios.nombres', 'LIKE', "%$search%")
+    //                 ->orWhere('usuarios.apellidos', 'LIKE', "%$search%")
+    //                 ->orWhere(DB::raw("CONCAT(usuarios.nombres, ' ', usuarios.apellidos)"), 'LIKE', "%$search%");
+    //         });
+    //     }
+
+    //     $doctors = $query->get();
+
+    //     // Get specialties for each doctor
+    //     foreach ($doctors as $doctor) {
+    //         $doctor->especialidades = DB::table('especialidades_usuarios')
+    //             ->join('especialidades', 'especialidades.idEspecialidad', '=', 'especialidades_usuarios.idEspecialidad')
+    //             ->where('especialidades_usuarios.idUsuario', $doctor->idUsuario)
+    //             ->select('especialidades.idEspecialidad', 'especialidades.nombre')
+    //             ->get();
+    //     }
+
+    //     // Filter by specialty if specified
+    //     if ($specialty) {
+    //         $doctors = collect($doctors)->filter(function ($doctor) use ($specialty) {
+    //             return $doctor->especialidades->contains('idEspecialidad', $specialty);
+    //         })->values();
+    //     }
+
+    //     return response()->json($doctors);
+    // }
+
     public function listarDoctores(Request $request)
     {
         $search = $request->input('search');
         $specialty = $request->input('specialty');
 
+        // Consulta base para obtener doctores activos
         $query = DB::table('usuarios')
             ->select(
                 'usuarios.idUsuario',
                 'usuarios.nombres',
                 'usuarios.apellidos'
             )
-            ->where('usuarios.rol', 'doctor');
+            ->where('usuarios.rol', 'doctor')
+            ->where('usuarios.estado', 'activo'); // Solo doctores activos
 
-        // Add search filter
+        // Filtro de búsqueda
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('usuarios.nombres', 'LIKE', "%$search%")
@@ -39,9 +84,10 @@ class SuperAdminController extends Controller
             });
         }
 
+        // Obtener los doctores filtrados
         $doctors = $query->get();
 
-        // Get specialties for each doctor
+        // Obtener las especialidades de cada doctor
         foreach ($doctors as $doctor) {
             $doctor->especialidades = DB::table('especialidades_usuarios')
                 ->join('especialidades', 'especialidades.idEspecialidad', '=', 'especialidades_usuarios.idEspecialidad')
@@ -50,7 +96,7 @@ class SuperAdminController extends Controller
                 ->get();
         }
 
-        // Filter by specialty if specified
+        // Filtrar por especialidad si se especifica
         if ($specialty) {
             $doctors = collect($doctors)->filter(function ($doctor) use ($specialty) {
                 return $doctor->especialidades->contains('idEspecialidad', $specialty);
@@ -329,10 +375,111 @@ class SuperAdminController extends Controller
     }
 
 
+    // public function registrarDatosPersonales(Request $request)
+    // {
+    //     Log::info('Datos recibidos en registrarDatosPersonales:', $request->all());
+    
+    //     $messages = [
+    //         'nombres.required' => 'El nombre es obligatorio.',
+    //         'apellidos.required' => 'Los apellidos son obligatorios.',
+    //         'apellidos.regex' => 'Debe ingresar al menos dos apellidos separados por un espacio.',
+    //         'dni.required' => 'El DNI es obligatorio.',
+    //         'dni.size' => 'El DNI debe tener exactamente 8 caracteres.',
+    //         'dni.unique' => 'El DNI ya está registrado.',
+    //         'correo.required' => 'El correo es obligatorio.',
+    //         'correo.email' => 'El correo debe tener un formato válido.',
+    //         'correo.unique' => 'El correo ya está registrado.',
+    //         'password.required' => 'La contraseña es obligatoria.',
+    //         'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+    //         'password.regex' => 'La contraseña debe incluir al menos una mayúscula y un símbolo.',
+    //         'telefono.size' => 'El teléfono debe tener 9 dígitos.',
+    //         'telefono.regex' => 'El teléfono debe contener solo números.',
+    //         'rol.required' => 'El rol es obligatorio.',
+    //         'rol.in' => 'El rol debe ser cliente, doctor o admin.',
+    //     ];
+    
+    //     $validator = Validator::make($request->all(), [
+    //         'nombres' => 'required|string|max:255',
+    //         'apellidos' => [
+    //             'required',
+    //             'regex:/^[a-zA-ZÀ-ÿ]+(\s[a-zA-ZÀ-ÿ]+)+$/'
+    //         ],
+    //         'dni' => 'required|string|size:8|unique:usuarios',
+    //         'correo' => 'required|string|email|max:255|unique:usuarios',
+    //         'telefono' => 'nullable|string|size:9|regex:/^\d{9}$/',
+    //         'password' => [
+    //             'required',
+    //             'string',
+    //             'min:8',
+    //             'regex:/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,}$/',
+    //         ],
+    //         'rol' => 'required|in:cliente,doctor,admin',
+    //     ], $messages);
+    
+    //     if ($validator->fails()) {
+    //         Log::error('Errores de validación:', $validator->errors()->toArray());
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
+    
+    //     try {
+    //         $nombres = explode(' ', $request->nombres);
+    //         $apellidos = explode(' ', $request->apellidos);
+            
+    //         if (count($apellidos) < 2) {
+    //             return response()->json([
+    //                 'errors' => ['apellidos' => 'Debe ingresar al menos dos apellidos.']
+    //             ], 422);
+    //         }
+    
+    //         $username = strtoupper(substr($nombres[0], 0, 2) . substr($apellidos[0], 0, 3) . substr($apellidos[1], 0, 3));
+    
+    //         $userId = DB::table('usuarios')->insertGetId([
+    //             'username' => $username,
+    //             'rol' => $request->rol,
+    //             'experiencia' => null,
+    //             'nombres' => $request->nombres,
+    //             'apellidos' => $request->apellidos,
+    //             'dni' => $request->dni,
+    //             'correo' => $request->correo,
+    //             'edad' => null,
+    //             'nacimiento' => null,
+    //             'sexo' => null,
+    //             'telefono' => $request->telefono,
+    //             'password' => bcrypt($request->password),
+    //             'estado' => 'activo',
+    //             'status' => 'loggedOff',
+    //             'emailVerified' => true,
+    //             'verification_token' => Str::random(60),
+    //         ]);
+    
+    //         $user = DB::table('usuarios')->where('idUsuario', $userId)->first();
+    //         Log::info('Usuario creado exitosamente:', (array)$user);
+    
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Usuario registrado exitosamente.',
+    //             'usuario' => $user
+    //         ], 201);
+    
+    //     } catch (Exception $e) {
+    //         Log::error('Error en la consulta de SQL:', [
+    //             'message' => $e->getMessage(),
+    //             'file' => $e->getFile(),
+    //             'line' => $e->getLine(),
+    //         ]);
+    
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Error en la base de datos. Verifica los datos enviados.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function registrarDatosPersonales(Request $request)
     {
         Log::info('Datos recibidos en registrarDatosPersonales:', $request->all());
-    
+
         $messages = [
             'nombres.required' => 'El nombre es obligatorio.',
             'apellidos.required' => 'Los apellidos son obligatorios.',
@@ -351,15 +498,15 @@ class SuperAdminController extends Controller
             'rol.required' => 'El rol es obligatorio.',
             'rol.in' => 'El rol debe ser cliente, doctor o admin.',
         ];
-    
+
         $validator = Validator::make($request->all(), [
             'nombres' => 'required|string|max:255',
             'apellidos' => [
                 'required',
                 'regex:/^[a-zA-ZÀ-ÿ]+(\s[a-zA-ZÀ-ÿ]+)+$/'
             ],
-            'dni' => 'required|string|size:8|unique:usuarios',
-            'correo' => 'required|string|email|max:255|unique:usuarios',
+            'dni' => 'required|string|size:8',
+            'correo' => 'required|string|email|max:255',
             'telefono' => 'nullable|string|size:9|regex:/^\d{9}$/',
             'password' => [
                 'required',
@@ -369,24 +516,49 @@ class SuperAdminController extends Controller
             ],
             'rol' => 'required|in:cliente,doctor,admin',
         ], $messages);
-    
+
         if ($validator->fails()) {
             Log::error('Errores de validación:', $validator->errors()->toArray());
             return response()->json(['errors' => $validator->errors()], 422);
         }
-    
+
         try {
+            // Verificar si el DNI o el correo ya están registrados
+            $existingUser = DB::table('usuarios')
+                ->where('dni', $request->dni)
+                ->orWhere('correo', $request->correo)
+                ->first();
+
+            if ($existingUser) {
+                // Si el usuario existe y está activo, no permitir el registro
+                if ($existingUser->estado === 'activo') {
+                    return response()->json([
+                        'errors' => [
+                            'dni' => 'El DNI ya está registrado y activo.',
+                            'correo' => 'El correo ya está registrado y activo.',
+                        ]
+                    ], 422);
+                }
+
+                // Si el usuario existe pero está eliminado, permitir el registro
+                if ($existingUser->estado === 'eliminado') {
+                    Log::info('Usuario eliminado encontrado, procediendo con el registro:', (array)$existingUser);
+                }
+            }
+
+            // Generar el username
             $nombres = explode(' ', $request->nombres);
             $apellidos = explode(' ', $request->apellidos);
-            
+
             if (count($apellidos) < 2) {
                 return response()->json([
                     'errors' => ['apellidos' => 'Debe ingresar al menos dos apellidos.']
                 ], 422);
             }
-    
+
             $username = strtoupper(substr($nombres[0], 0, 2) . substr($apellidos[0], 0, 3) . substr($apellidos[1], 0, 3));
-    
+
+            // Insertar el nuevo usuario
             $userId = DB::table('usuarios')->insertGetId([
                 'username' => $username,
                 'rol' => $request->rol,
@@ -400,28 +572,28 @@ class SuperAdminController extends Controller
                 'sexo' => null,
                 'telefono' => $request->telefono,
                 'password' => bcrypt($request->password),
-                'estado' => 'activo',
+                'estado' => 'activo', // Nuevo registro siempre será activo
                 'status' => 'loggedOff',
                 'emailVerified' => true,
                 'verification_token' => Str::random(60),
             ]);
-    
+
             $user = DB::table('usuarios')->where('idUsuario', $userId)->first();
             Log::info('Usuario creado exitosamente:', (array)$user);
-    
+
             return response()->json([
                 'success' => true,
                 'message' => 'Usuario registrado exitosamente.',
                 'usuario' => $user
             ], 201);
-    
+
         } catch (Exception $e) {
             Log::error('Error en la consulta de SQL:', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
-    
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error en la base de datos. Verifica los datos enviados.',

@@ -955,7 +955,7 @@ class ClienteController extends Controller
             // Validar que el ID del doctor esté presente
             if (!$idCliente) {
                 return response()->json([
-                    'error' => 'ID del doctor no encontrado en el token'
+                    'error' => 'ID del cliente no encontrado en el token'
                 ], 400);
             }
     
@@ -983,7 +983,7 @@ class ClienteController extends Controller
             // Validar que el ID del doctor esté presente
             if (!$idCliente) {
                 return response()->json([
-                    'error' => 'ID del doctor no encontrado en el token'
+                    'error' => 'ID del cliente no encontrado en el token'
                 ], 400);
             }
     
