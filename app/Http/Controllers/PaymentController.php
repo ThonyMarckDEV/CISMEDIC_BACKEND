@@ -392,21 +392,103 @@ class PaymentController extends Controller
 
 
     protected function generateFacturaPDF($pdfPath, $nombreCliente, $detallesComprobante, $costoCita, $ruc) {
-        $pdf = new FPDF();
+        // Crear un nuevo PDF con formato personalizado
+        $pdf = new FPDF('P', 'mm', 'A4');
         $pdf->AddPage();
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(40, 10, 'Factura de Pago');
-        $pdf->Ln();
-        $pdf->SetFont('Arial', '', 12);
-        $pdf->Cell(40, 10, 'Cliente: ' . $nombreCliente);
-        $pdf->Ln();
-        $pdf->Cell(40, 10, 'RUC: ' . $ruc);
-        $pdf->Ln();
+        
+        // Propiedades del documento
+        $pdf->SetTitle('Factura - Clínica');
+        $pdf->SetAuthor('Cismedic');
+        
+        // Colores personalizados
+        $primaryColor = [28, 40, 51];    // Azul oscuro-grisáceo
+        $accentColor = [45, 136, 89];   // Verde 700
+        $textColor = [44, 62, 80];       // Gris oscuro
+        
+        // Márgenes para un espaciado elegante
+        $pdf->SetMargins(25, 20, 25);
+        $pdf->SetAutoPageBreak(true, 25);
+        
+        // Encabezado con logo
+        $pdf->Image(public_path('storage/logo/logo.png'), 25, 20, 40);
+        
+        // Información de la empresa (alineada a la derecha)
+        $pdf->SetFont('Helvetica', '', 9);
+        $pdf->SetTextColor(...$textColor);
+        $pdf->SetXY(120, 20);
+        $pdf->Cell(70, 6, 'Cismedic Centro Medico', 0, 1, 'R');
+        $pdf->SetXY(120, 26);
+        $pdf->Cell(70, 6, 'Jose Galvez 415, Sechura 20691', 0, 1, 'R');
+        $pdf->SetXY(120, 32);
+        $pdf->Cell(70, 6, 'Tel: +51 968 103 600', 0, 1, 'R');
+        
+        // Título del documento
+        $pdf->SetY(70);
+        $pdf->SetFont('Helvetica', 'B', 24);
+        $pdf->SetTextColor(...$primaryColor);
+        $pdf->Cell(0, 10, 'FACTURA', 0, 1, 'C');
+        
+        // Línea separadora elegante
+        $pdf->SetDrawColor(...$accentColor);
+        $pdf->SetLineWidth(0.5);
+        $pdf->Line(25, 85, 185, 85);
+        
+        // Sección de información del cliente
+        $pdf->SetY(95);
+        $pdf->SetFont('Helvetica', 'B', 11);
+        $pdf->SetTextColor(...$primaryColor);
+        $pdf->Cell(0, 10, 'INFORMACION DEL CLIENTE', 0, 1, 'L');
+        
+        // Datos del cliente
+        $pdf->SetFont('Helvetica', '', 10);
+        $pdf->SetTextColor(...$textColor);
+        
+        // Nombre del cliente
+        $pdf->Cell(40, 7, 'Cliente:', 0);
+        $pdf->SetFont('Helvetica', 'B', 10);
+        $pdf->Cell(0, 7, $nombreCliente, 0, 1);
+        
+        // RUC
+        $pdf->SetFont('Helvetica', '', 10);
+        $pdf->Cell(40, 7, 'RUC:', 0);
+        $pdf->SetFont('Helvetica', 'B', 10);
+        $pdf->Cell(0, 7, $ruc, 0, 1);
+        
+        // Sección de detalles del servicio
+        $pdf->Ln(10);
+        $pdf->SetFont('Helvetica', 'B', 11);
+        $pdf->SetTextColor(...$primaryColor);
+        $pdf->Cell(0, 10, 'DETALLE DEL SERVICIO', 0, 1, 'L');
+        
+        // Detalles del servicio
+        $pdf->SetFont('Helvetica', '', 10);
+        $pdf->SetTextColor(...$textColor);
         foreach ($detallesComprobante as $key => $value) {
-            $pdf->Cell(40, 10, ucfirst($key) . ': ' . $value);
-            $pdf->Ln();
+            $pdf->Cell(40, 7, ucfirst($key) . ':', 0);
+            $pdf->SetFont('Helvetica', 'B', 10);
+            $pdf->Cell(0, 7, $value, 0, 1);
+            $pdf->SetFont('Helvetica', '', 10);
         }
-        $pdf->Cell(40, 10, 'Total: ' . $costoCita);
+        
+        // Sección del monto total con un recuadro elegante
+        $pdf->Ln(10);
+        $pdf->SetFillColor(...$primaryColor);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Helvetica', 'B', 12);
+        $pdf->Cell(140, 12, 'MONTO TOTAL', 0, 0, 'R', true);
+        $pdf->Cell(30, 12, 'S/ ' . number_format($costoCita, 2), 0, 1, 'R', true);
+        
+        // Pie de página
+        $pdf->SetY(-50);
+        $pdf->SetTextColor(...$primaryColor);
+        $pdf->SetFont('Helvetica', 'B', 11);
+        $pdf->Cell(0, 10, 'Gracias por confiar en Cismedic', 0, 1, 'C');
+        
+        $pdf->SetFont('Helvetica', '', 9);
+        $pdf->SetTextColor(...$textColor);
+        $pdf->Cell(0, 6, 'Este documento es una factura valida de su pago', 0, 1, 'C');
+        
+        // Guardar el PDF
         $pdf->Output('F', $pdfPath);
     }
 
