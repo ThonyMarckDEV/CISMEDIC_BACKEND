@@ -502,44 +502,119 @@ class AuthController extends Controller
      *     )
      * )
      */
+    // public function login(Request $request)
+    // {
+    //     $request->validate([
+    //         'correo' => 'required|email',
+    //         'password' => 'required|string|min:6',
+    //     ]);
+    
+    //     $credentials = [
+    //         'correo' => $request->input('correo'),
+    //         'password' => $request->input('password')
+    //     ];
+    
+    //     try {
+    //         $usuario = Usuario::where('correo', $credentials['correo'])->first();
+    
+    //         if (!$usuario) {
+    //             return response()->json(['error' => 'Usuario no encontrado'], 404);
+    //         }
+    
+    //         // Validar si el correo está verificado
+    //         if ($usuario->emailVerified === 0) {
+    //             return response()->json(['error' => 'Por favor, verifique su cuenta para poder ingresar.'], 403);
+    //         }
+    
+    //         if ($usuario->estado === 'inactivo') {
+    //             return response()->json(['error' => 'Usuario inactivo'], 403);
+    //         }
+    
+    //         // Generar nuevo token
+    //         if (!$token = JWTAuth::attempt(['correo' => $credentials['correo'], 'password' => $credentials['password']])) {
+    //             return response()->json(['error' => 'Credenciales inválidas'], 401);
+    //         }
+    
+    //         // IMPORTANTE: Primero invalidamos todas las sesiones existentes
+    //         $this->invalidarSesionesAnteriores($usuario->idUsuario);
+    
+    //         $dispositivo = $this->obtenerDispositivo();
+    
+    //         // Crear o actualizar el registro de actividad con el nuevo token
+    //         ActividadUsuario::updateOrCreate(
+    //             ['idUsuario' => $usuario->idUsuario],
+    //             [
+    //                 'last_activity' => now(),
+    //                 'dispositivo' => $dispositivo,
+    //                 'jwt' => $token,
+    //                 'session_active' => true
+    //             ]
+    //         );
+    
+    //         // Actualizar estado del usuario
+    //         $usuario->update(['status' => 'loggedOn']);
+    
+    //         // Log de la acción
+    //         $nombreUsuario = $usuario->nombres . ' ' . $usuario->apellidos;
+    //         $this->agregarLog($usuario->idUsuario, "$nombreUsuario inició sesión desde: $dispositivo");
+    
+    //         return response()->json([
+    //             'token' => $token,
+    //             'message' => 'Login exitoso, sesiones anteriores cerradas'
+    //         ]);
+    
+    //     } catch (JWTException $e) {
+    //         Log::error('Error en login: ' . $e->getMessage());
+    //         return response()->json(['error' => 'Error al crear token'], 500);
+    //     }
+    // }
+
     public function login(Request $request)
     {
         $request->validate([
             'correo' => 'required|email',
             'password' => 'required|string|min:6',
         ]);
-    
+
         $credentials = [
             'correo' => $request->input('correo'),
             'password' => $request->input('password')
         ];
-    
+
         try {
             $usuario = Usuario::where('correo', $credentials['correo'])->first();
-    
+
             if (!$usuario) {
                 return response()->json(['error' => 'Usuario no encontrado'], 404);
             }
-    
+
+            // Verificar si la cuenta está eliminada
+            if ($usuario->estado === 'eliminado') {
+                return response()->json([
+                    'error' => 'Su cuenta esta eliminada. Por favor regístrese nuevamente.',
+                    'accountDeleted' => true
+                ], 403);
+            }
+
             // Validar si el correo está verificado
             if ($usuario->emailVerified === 0) {
                 return response()->json(['error' => 'Por favor, verifique su cuenta para poder ingresar.'], 403);
             }
-    
+
             if ($usuario->estado === 'inactivo') {
                 return response()->json(['error' => 'Usuario inactivo'], 403);
             }
-    
+
             // Generar nuevo token
             if (!$token = JWTAuth::attempt(['correo' => $credentials['correo'], 'password' => $credentials['password']])) {
                 return response()->json(['error' => 'Credenciales inválidas'], 401);
             }
-    
+
             // IMPORTANTE: Primero invalidamos todas las sesiones existentes
             $this->invalidarSesionesAnteriores($usuario->idUsuario);
-    
+
             $dispositivo = $this->obtenerDispositivo();
-    
+
             // Crear o actualizar el registro de actividad con el nuevo token
             ActividadUsuario::updateOrCreate(
                 ['idUsuario' => $usuario->idUsuario],
@@ -550,19 +625,19 @@ class AuthController extends Controller
                     'session_active' => true
                 ]
             );
-    
+
             // Actualizar estado del usuario
             $usuario->update(['status' => 'loggedOn']);
-    
+
             // Log de la acción
             $nombreUsuario = $usuario->nombres . ' ' . $usuario->apellidos;
             $this->agregarLog($usuario->idUsuario, "$nombreUsuario inició sesión desde: $dispositivo");
-    
+
             return response()->json([
                 'token' => $token,
                 'message' => 'Login exitoso, sesiones anteriores cerradas'
             ]);
-    
+
         } catch (JWTException $e) {
             Log::error('Error en login: ' . $e->getMessage());
             return response()->json(['error' => 'Error al crear token'], 500);
