@@ -591,7 +591,7 @@ class AuthController extends Controller
             // Verificar si la cuenta está eliminada
             if ($usuario->estado === 'eliminado') {
                 return response()->json([
-                    'error' => 'Su cuenta esta eliminada. Por favor regístrese nuevamente.',
+                    'error' => 'Su cuenta esta eliminada. Por favor regístrese nuevamente, o contacte a un administrador.',
                     'accountDeleted' => true
                 ], 403);
             }
