@@ -118,168 +118,6 @@ class PaymentController extends Controller
         }
     }
 
-
-    // public function recibirPago(Request $request)
-    // {
-    //     try {
-    //         $id = $request->input('data')['id'] ?? null;
-    //         $type = $request->input('type') ?? null;
-    
-    //         if (!$id || $type !== 'payment') {
-    //             Log::warning('ID del pago o tipo no válido.');
-    //             return response()->json(['error' => 'ID del pago o tipo no válido'], 400);
-    //         }
-    
-    //         // Consultar a la API de Mercado Pago
-    //         $url = "https://api.mercadopago.com/v1/payments/{$id}";
-    //         $client = new Client();
-    //         $response = $client->request('GET', $url, [
-    //             'headers' => [
-    //                 'Authorization' => 'Bearer ' . env('MERCADOPAGO_ACCESS_TOKEN'),
-    //             ],
-    //         ]);
-    
-    //         $pago = json_decode($response->getBody(), true);
-    //         $estado_pago = trim(strtolower($pago['status'])); // Aseguramos formato uniforme
-    //         $metodo_pago = $pago['payment_method_id'] ?? null;
-    //         $externalReference = $pago['external_reference'];
-    
-    //         // Verificar si existe un pago asociado a la cita
-    //         $pagoModel = DB::table('pagos')
-    //             ->where('idCita', $externalReference)
-    //             ->first();
-    
-    //         if (!$pagoModel) {
-    //             return response()->json(['success' => false, 'message' => 'Pago no encontrado para esta cita'], 200);
-    //         }
-    
-    //         if ($pagoModel->estado === 'pagado') {
-    //             return response()->json(['success' => false, 'message' => 'Este pago ya ha sido completado previamente'], 200);
-    //         }
-    
-    //         // Obtener el tipo de comprobante y el RUC (si es factura)
-    //         $tipoComprobante = $pagoModel->tipo_comprobante;
-    //         $ruc = $tipoComprobante === 'factura' ? $pagoModel->ruc : null;
-    
-    //         // Actualizar el estado del pago
-    //         DB::table('pagos')
-    //             ->where('idCita', $externalReference)
-    //             ->update([
-    //                 'estado' => 'pagado',
-    //                 'tipo_pago' => $metodo_pago,
-    //                 'fecha_pago' => now()
-    //             ]);
-    
-    //         // Obtener los datos de la cita
-    //         $cita = DB::table('citas')
-    //             ->where('idCita', $externalReference)
-    //             ->first();
-    
-    //         if (!$cita) {
-    //             return response()->json(['success' => false, 'message' => 'Cita no encontrada'], 404);
-    //         }
-    
-    //         // Obtener el costo de la cita desde la tabla horarios_doctores
-    //         $horarioDoctor = DB::table('horarios_doctores')
-    //             ->where('idHorario', $cita->idHorario)
-    //             ->first();
-    
-    //         if (!$horarioDoctor) {
-    //             return response()->json(['success' => false, 'message' => 'No se encontró el horario del doctor asociado a la cita'], 404);
-    //         }
-    
-    //         $costoCita = $horarioDoctor->costo;
-    
-    //         // Actualizar el estado de la cita
-    //         if ($estado_pago === 'approved') {
-    //             DB::table('citas')
-    //                 ->where('idCita', $externalReference)
-    //                 ->update(['estado' => 'pagado']);
-    //         }
-    
-    //         // Obtener los datos del cliente
-    //         $cliente = DB::table('usuarios')
-    //             ->where('idUsuario', $cita->idCliente)
-    //             ->first();
-    
-    //         if (!$cliente) {
-    //             return response()->json(['success' => false, 'message' => 'Cliente no encontrado'], 404);
-    //         }
-    
-    //        // Detalles del comprobante
-    //         $detallesComprobante = [
-    //             'especialidad' => $cita->especialidad,
-    //             'doctor' => DB::table('usuarios')
-    //                 ->where('idUsuario', $cita->idDoctor)
-    //                 ->selectRaw("CONCAT(nombres, ' ', apellidos) as nombre_completo") // Concatenar nombres y apellidos
-    //                 ->value('nombre_completo'), // Obtener el valor concatenado
-    //             'fecha' => $horarioDoctor->fecha,
-    //             'hora_inicio' => $horarioDoctor->hora_inicio,
-    //             'monto' => $costoCita,
-    //         ];
-
-    
-    //         // Generar el PDF según el tipo de comprobante
-    //         if ($tipoComprobante === 'boleta') {
-    //             // Crear la ruta del directorio usando el idCita
-    //             $pdfDirectory = "storage/comprobantesMedicos/Boletas/citas/{$cita->idCita}/";
-    //             $pdfFileName = "boleta_" . date('Ymd_His') . "_" . $cita->idCita . ".pdf";
-    //             $pdfPath = $pdfDirectory . $pdfFileName;
-    
-    //             if (!file_exists($pdfDirectory)) {
-    //                 mkdir($pdfDirectory, 0755, true);
-    //             }
-    
-    //             $this->generateBoletaPDF(
-    //                 $pdfPath,
-    //                 "{$cliente->nombres} {$cliente->apellidos}",
-    //                 $detallesComprobante,
-    //                 $costoCita
-    //             );
-    
-    //             // Enviar correo con la boleta
-    //             Mail::to($cliente->correo)->send(new NotificacionPagoCompletadoBoleta(
-    //                 "{$cliente->nombres} {$cliente->apellidos}",
-    //                 $detallesComprobante,
-    //                 $costoCita,
-    //                 $pdfPath,
-    //                 $cita->idCita
-    //             ));
-    //         } elseif ($tipoComprobante === 'factura') {
-    //             $pdfDirectory = "storage/comprobantesMedicos/Facturas/citas/{$cita->idCita}/";
-    //             $pdfFileName = "factura_" . date('Ymd_His') . "_" . $cita->idCita . ".pdf";
-    //             $pdfPath = $pdfDirectory . $pdfFileName;
-    
-    //             if (!file_exists($pdfDirectory)) {
-    //                 mkdir($pdfDirectory, 0755, true);
-    //             }
-    
-    //             $this->generateFacturaPDF(
-    //                 $pdfPath,
-    //                 "{$cliente->nombres} {$cliente->apellidos}", // Concatenar nombres y apellidos del cliente
-    //                 $detallesComprobante,
-    //                 $costoCita,
-    //                 $ruc,
-    //             );
-    
-    //             // Enviar correo con la factura
-    //             Mail::to($cliente->correo)->send(new NotificacionPagoCompletadoFactura(
-    //                 "{$cliente->nombres} {$cliente->apellidos}",
-    //                 $detallesComprobante,
-    //                 $costoCita,
-    //                 $pdfPath,
-    //                 $ruc, // Usamos el RUC para la factura
-    //                 $cita->idCita
-    //             ));
-    //         }
-    
-    //         return response()->json(['success' => true, 'message' => 'Estado de pago y cita actualizados correctamente'], 200);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error al procesar el webhook: ' . $e->getMessage());
-    //         return response()->json(['error' => 'Error interno: ' . $e->getMessage()], 500);
-    //     }
-    // }
-
     public function recibirPago(Request $request)
     {
         try {
@@ -485,11 +323,11 @@ class PaymentController extends Controller
         $pdf->SetFont('Helvetica', '', 9);
         $pdf->SetTextColor(...$textColor);
         $pdf->SetXY(120, 20);
-        $pdf->Cell(70, 6, 'Cismedic Centro Médico', 0, 1, 'R');
+        $pdf->Cell(70, 6, 'Cismedic Centro Medico', 0, 1, 'R');
         $pdf->SetXY(120, 26);
-        $pdf->Cell(70, 6, 'Av. Ejemplo 123, Lima', 0, 1, 'R');
+        $pdf->Cell(70, 6, 'Jose Galvez 415, Sechura 20691', 0, 1, 'R');
         $pdf->SetXY(120, 32);
-        $pdf->Cell(70, 6, 'Tel: +51 123 456 789', 0, 1, 'R');
+        $pdf->Cell(70, 6, 'Tel: +51 968 103 600', 0, 1, 'R');
         
         // Título del documento
         $pdf->SetY(70);
@@ -506,7 +344,7 @@ class PaymentController extends Controller
         $pdf->SetY(95);
         $pdf->SetFont('Helvetica', 'B', 11);
         $pdf->SetTextColor(...$primaryColor);
-        $pdf->Cell(0, 10, 'INFORMACIÓN DEL PACIENTE', 0, 1, 'L');
+        $pdf->Cell(0, 10, 'INFORMACION DEL PACIENTE', 0, 1, 'L');
         
         $pdf->SetFont('Helvetica', '', 10);
         $pdf->SetTextColor(...$textColor);
@@ -546,7 +384,7 @@ class PaymentController extends Controller
         
         $pdf->SetFont('Helvetica', '', 9);
         $pdf->SetTextColor(...$textColor);
-        $pdf->Cell(0, 6, 'Este documento es un comprobante válido de su pago', 0, 1, 'C');
+        $pdf->Cell(0, 6, 'Este documento es un comprobante valido de su pago', 0, 1, 'C');
         
         // Guardar el PDF
         $pdf->Output('F', $pdfPath);
