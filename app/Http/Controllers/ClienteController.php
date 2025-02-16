@@ -28,26 +28,31 @@ use Illuminate\Support\Facades\Mail;
 
 class ClienteController extends Controller
 {
-
     public function cambiarPassword(Request $request)
     {   
         $request->validate([
             'userId' => 'required|integer',
-            'newPassword' => 'required|string|min:8|regex:/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/',
+            'newPassword' => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/[A-Z]/',  // Al menos una mayúscula
+                'regex:/[!@#$%^&*(),.?":{}|<>]/' // Al menos un símbolo
+            ]
         ]);
-
+    
         $user = Usuario::find($request->userId);
-
+    
         if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Usuario no encontrado.',
             ], 404);
         }
-
-        $user->password = Hash::make($request->newPassword);
+    
+        $user->password = bcrypt($request->newPassword);
         $user->save();
-
+    
         return response()->json([
             'success' => true,
             'message' => 'Contraseña cambiada correctamente.',
