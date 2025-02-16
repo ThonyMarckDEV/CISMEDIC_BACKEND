@@ -115,6 +115,9 @@ use Illuminate\Support\Facades\DB;
         Route::get('/listarDoctores', [SuperAdminController::class, 'listarDoctores']);
         Route::post('/asignarespecialidad', [SuperAdminController::class, 'asignarEspecialidad']);
         Route::delete('/removerespecialidad', [SuperAdminController::class, 'removeEspecialidad']);
+
+        //Rutas dashboard
+        Route::get('/payment-history', [SuperAdminController::class, 'index']);
     });
 
 

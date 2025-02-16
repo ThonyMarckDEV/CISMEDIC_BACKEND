@@ -16,6 +16,28 @@ use Illuminate\Support\Facades\Validator;
 class SuperAdminController extends Controller
 {
 
+    public function index()
+    {
+        $payments = DB::table('historial_pagos as hp')
+            ->join('historial_citas as hc', 'hp.idCita', '=', 'hc.idCita')
+            ->join('usuarios as u', 'hc.idCliente', '=', 'u.idUsuario')
+            ->select(
+                'hp.idPago',
+                'hp.monto',
+                'hp.estado',
+                'hp.fecha_pago',
+                'hp.tipo_pago',
+                'hp.tipo_comprobante',
+                'hc.especialidad',
+                'u.nombres as nombre_cliente',
+                'u.apellidos as apellidos_cliente'
+            )
+            ->orderBy('hp.fecha_pago', 'desc')
+            ->get();
+    
+        return response()->json($payments);
+    }
+
     public function listarDoctores(Request $request)
     {
         $search = $request->input('search');
