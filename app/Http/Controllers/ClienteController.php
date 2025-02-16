@@ -439,8 +439,6 @@ class ClienteController extends Controller
             ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
             ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
             ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
-            ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
-            ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
             ->leftJoin('pagos as p', 'c.idCita', '=', 'p.idCita')
             ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario') // Unión con familiares_usuarios
             ->select(
@@ -449,7 +447,7 @@ class ClienteController extends Controller
                 'u_cliente.apellidos as clienteApellidos',
                 'u_doctor.nombres as doctorNombre',
                 'u_doctor.apellidos as doctorApellidos',
-                'e.nombre as especialidad',
+                'c.especilidad as especialidad',
                 'hd.fecha',
                 'hd.hora_inicio as horaInicio',
                 'hd.costo',
@@ -550,8 +548,6 @@ class ClienteController extends Controller
                 ->join('usuarios as u_cliente', 'c.idCliente', '=', 'u_cliente.idUsuario')
                 ->join('usuarios as u_doctor', 'c.idDoctor', '=', 'u_doctor.idUsuario')
                 ->join('horarios_doctores as hd', 'c.idHorario', '=', 'hd.idHorario')
-                ->join('especialidades_usuarios as eu', 'u_doctor.idUsuario', '=', 'eu.idUsuario')
-                ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad')
                 ->leftJoin('historial_pagos as p', 'c.idCita', '=', 'p.idCita')
                 ->leftJoin('familiares_usuarios as fu', 'c.idFamiliarUsuario', '=', 'fu.idFamiliarUsuario')
                 ->select(
@@ -560,7 +556,7 @@ class ClienteController extends Controller
                     'u_cliente.apellidos as clienteApellidos',
                     'u_doctor.nombres as doctorNombre',
                     'u_doctor.apellidos as doctorApellidos',
-                    'e.nombre as especialidad',
+                    'c.especialidad as especialidad',
                     'hd.fecha',
                     'hd.hora_inicio as horaInicio',
                     'hd.costo',
@@ -651,8 +647,6 @@ class ClienteController extends Controller
                 ->join('historial_citas as c', 'p.idCita', '=', 'c.idCita')
                 ->join('usuarios as u', 'c.idCliente', '=', 'u.idUsuario') // Cliente
                 ->join('usuarios as d', 'c.idDoctor', '=', 'd.idUsuario') // Doctor
-                ->join('especialidades_usuarios as eu', 'd.idUsuario', '=', 'eu.idUsuario') // Relación doctor-especialidad
-                ->join('especialidades as e', 'eu.idEspecialidad', '=', 'e.idEspecialidad') // Especialidad
                 ->join('horarios_doctores as h', 'c.idHorario', '=', 'h.idHorario') // Horario
                 ->select(
                     'p.idPago',
@@ -670,7 +664,7 @@ class ClienteController extends Controller
                     'u.nombres as clienteNombre',
                     'u.apellidos as clienteApellidos',
                     'u.dni',
-                    'e.nombre as especialidad'
+                    'c.especialidad as especialidad'
                 )
                 ->where('c.idCliente', $idCliente);
 

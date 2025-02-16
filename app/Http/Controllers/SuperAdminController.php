@@ -548,39 +548,53 @@ class SuperAdminController extends Controller
     }
 
     public function eliminarEspecialidad($id)
-{
-    try {
-        // Actualizar el estado a 'inactivo' en lugar de eliminar
-        $updated = DB::table('especialidades')
-            ->where('idEspecialidad', $id)
-            ->update(['estado' => 'eliminado']);
-
-        if (!$updated) {
+    {
+        try {
+            // Iniciar una transacción para asegurar la consistencia de los datos
+            DB::beginTransaction();
+    
+            // 1. Eliminar todos los usuarios asignados a la especialidad en la tabla `especialidades_usuarios`
+            DB::table('especialidades_usuarios')
+                ->where('idEspecialidad', $id)
+                ->delete();
+    
+            // 2. Actualizar el estado de la especialidad a 'eliminado' en la tabla `especialidades`
+            $updated = DB::table('especialidades')
+                ->where('idEspecialidad', $id)
+                ->update(['estado' => 'eliminado']);
+    
+            // Verificar si la especialidad fue encontrada y actualizada
+            if (!$updated) {
+                DB::rollBack(); // Revertir la transacción
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Especialidad no encontrada'
+                ], 404);
+            }
+    
+            // Confirmar la transacción
+            DB::commit();
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Especialidad desactivada y usuarios desasignados exitosamente'
+            ]);
+    
+        } catch (Exception $e) {
+            DB::rollBack(); // Revertir la transacción en caso de error
+            Log::error('Error al desactivar especialidad:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+    
             return response()->json([
                 'success' => false,
-                'message' => 'Especialidad no encontrada'
-            ], 404);
+                'message' => 'Error al desactivar especialidad',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Especialidad desactivada exitosamente'
-        ]);
-
-    } catch (Exception $e) {
-        Log::error('Error al desactivar especialidad:', [
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Error al desactivar especialidad',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
     public function registrarEspecialidad(Request $request)
     {
