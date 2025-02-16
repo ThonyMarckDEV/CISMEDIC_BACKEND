@@ -118,6 +118,7 @@ use Illuminate\Support\Facades\DB;
 
         //Rutas dashboard
         Route::get('/payment-history', [SuperAdminController::class, 'index']);
+        Route::get('/dashboard-stats', [SuperAdminController::class, 'getStats']);
     });
 
 

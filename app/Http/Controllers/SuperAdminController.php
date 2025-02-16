@@ -38,6 +38,24 @@ class SuperAdminController extends Controller
         return response()->json($payments);
     }
 
+    public function getStats()
+{
+        $topSpecialty = DB::table('historial_citas')
+            ->select('especialidad', DB::raw('COUNT(*) as total'))
+            ->groupBy('especialidad')
+            ->orderBy('total', 'desc')
+            ->first();
+
+        $totalClients = DB::table('usuarios')
+            ->where('rol', 'cliente')
+            ->count();
+
+        return response()->json([
+            'topSpecialty' => $topSpecialty,
+            'totalClients' => $totalClients
+        ]);
+    }
+
     public function listarDoctores(Request $request)
     {
         $search = $request->input('search');
