@@ -78,6 +78,20 @@ use Illuminate\Support\Facades\DB;
 
     });
 
+    //RUTAS  AUTH para  roles  superadmin y cliente
+
+    Route::middleware(['auth.jwt', 'checkRolesSC'])->group(function () {
+
+        // Rutas para Agendar Cita
+        Route::get('/especialidades', [ClienteController::class, 'getEspecialidades']);
+        Route::get('/doctores/especialidad/{idEspecialidad}', [ClienteController::class, 'getDoctoresPorEspecialidad']);
+        Route::get('/horarios-disponibles/{idDoctor}/{fecha}', [ClienteController::class, 'getHorariosDisponibles']);
+        Route::get('/doctor-schedule/{doctorId}/week', [ClienteController::class, 'getWeekSchedule']); 
+
+    });
+
+
+
 
 //================================================================================================
     //RUTAS PROTEGIDAS A

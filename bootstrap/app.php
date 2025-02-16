@@ -23,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'checkRolesMW' =>CheckRoles::class,
              //MIDDLEWARE PARA VERIFICAR ROL MULTIPLE
              'checkRolesMWACS' =>CheckRolesAdminClienteSuperAdmin::class,
+             //MIDDLEWARE PARA VERIFICAR ROL MULTIPLE
+             'checkRolesSC' =>CheckRolesAdminClienteSuperAdmin::class,
             //MIDDLEWARE PARA AUTH DEL TOKEN
             'auth.jwt' =>\Tymon\JWTAuth\Http\Middleware\Authenticate::class,
             //MIDDLEWARE CORS
