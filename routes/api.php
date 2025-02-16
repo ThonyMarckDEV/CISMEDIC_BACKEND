@@ -82,11 +82,8 @@ use Illuminate\Support\Facades\DB;
 
     Route::middleware(['auth.jwt', 'checkRolesSC'])->group(function () {
 
-        // Rutas para Agendar Cita
-        Route::get('/especialidades', [ClienteController::class, 'getEspecialidades']);
-        Route::get('/doctores/especialidad/{idEspecialidad}', [ClienteController::class, 'getDoctoresPorEspecialidad']);
-        Route::get('/horarios-disponibles/{idDoctor}/{fecha}', [ClienteController::class, 'getHorariosDisponibles']);
-        Route::get('/doctor-schedule/{doctorId}/week', [ClienteController::class, 'getWeekSchedule']); 
+        Route::post('/cambiar-password', [ClienteController::class, 'cambiarPassword']);
+
 
     });
 

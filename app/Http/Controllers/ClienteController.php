@@ -22,11 +22,38 @@ use App\Mail\NotificacionCitaEliminada;
 use DateTime;
 use DateTimeZone;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 class ClienteController extends Controller
 {
+
+    public function cambiarPassword(Request $request)
+    {   
+        $request->validate([
+            'userId' => 'required|integer',
+            'newPassword' => 'required|string|min:8|regex:/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/',
+        ]);
+
+        $user = Usuario::find($request->userId);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado.',
+            ], 404);
+        }
+
+        $user->password = Hash::make($request->newPassword);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Contraseña cambiada correctamente.',
+        ]);
+    }
+
      // Obtener todas las especialidades
 
      public function getEspecialidades()
