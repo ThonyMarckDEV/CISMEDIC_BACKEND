@@ -58,7 +58,10 @@ class PaymentController extends Controller
         // Crear una instancia del cliente de preferencias de MercadoPago
         $client = new PreferenceClient();
 
-         $currentUrlBase = 'https://cismedic.vercel.app'; // DOMINIO DEL FRONT
+        // $currentUrlBase = 'https://cismedic.vercel.app'; // DOMINIO DEL FRONT
+
+         $currentUrlBase = 'https://thonymarckdev.vercel.app'; // DOMINIO DEL FRONT
+        
 
         //$currentUrlBase = 'http://localhost:3000'; // DOMINIO DEL FRONT
     
